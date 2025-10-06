@@ -101,7 +101,8 @@
       backdrop-filter: blur(14px);
     }
 
-    .field label {
+    .field label,
+    .field .field-label {
       display: block;
       font-size: 0.75rem;
       text-transform: uppercase;
@@ -134,6 +135,56 @@
       outline: none;
       border-color: var(--accent-2);
       transform: translateY(-2px);
+    }
+
+    .options-field {
+      padding-bottom: 0.4rem;
+    }
+
+    .toggle-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .toggle {
+      position: relative;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(45, 226, 230, 0.35);
+      background: rgba(45, 226, 230, 0.08);
+      transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+      cursor: pointer;
+    }
+
+    .toggle:hover {
+      transform: translateY(-2px);
+    }
+
+    .toggle input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .toggle span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.55rem 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--accent-2);
+      transition: color 0.3s ease;
+    }
+
+    .toggle input:checked + span {
+      color: #060513;
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.9), rgba(45, 226, 230, 0.9));
     }
 
     .actions {
@@ -282,6 +333,54 @@
       place-items: center;
     }
 
+    .streaming-links {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid rgba(167, 108, 255, 0.2);
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .streaming-caption {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(248, 249, 255, 0.7);
+    }
+
+    .streaming-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.2rem;
+      border-radius: 14px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-decoration: none;
+      color: #060513;
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.85), rgba(45, 226, 230, 0.9));
+      box-shadow: 0 16px 34px rgba(45, 226, 230, 0.26);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .link-button[data-platform='youtube'] {
+      background: linear-gradient(135deg, rgba(255, 111, 145, 0.9), rgba(167, 108, 255, 0.9));
+      color: #fff;
+    }
+
+    .link-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 24px 42px rgba(167, 108, 255, 0.32);
+    }
+
     .history-list {
       display: grid;
       gap: 0.85rem;
@@ -427,6 +526,20 @@
           />
           <small>Se usa solo para el botón de escucha. Si lo dejás vacío usamos el modo demo.</small>
         </div>
+        <div class="field options-field">
+          <span class="field-label">Acceso directo</span>
+          <div class="toggle-group" role="group" aria-label="Elegí plataformas para abrir la canción">
+            <label class="toggle">
+              <input type="checkbox" id="openSpotify" checked />
+              <span>🟢 Spotify</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="openYoutube" checked />
+              <span>▶️ YouTube</span>
+            </label>
+          </div>
+          <small>Elegí dónde querés abrir la canción cuando encontremos la letra.</small>
+        </div>
         <div class="actions">
           <button type="submit" class="primary-button">Invocar IA</button>
           <button type="button" id="listenButton" class="listen-button">
@@ -446,6 +559,7 @@
         <div class="card-title">Respuesta de FachaBot</div>
         <h2 style="margin-top: 0; margin-bottom: 0.8rem;">Letra generada</h2>
         <div class="ai-output empty" id="lyricsOutput">Esperando tu consulta musical...</div>
+        <div class="streaming-links" id="streamingLinks" hidden></div>
       </div>
       <div class="card">
         <div class="card-title">Tips facheros</div>
@@ -479,6 +593,7 @@
       const HISTORY_KEY = 'fachaLyricsHistory';
       const MODE_KEY = 'fachaDeviceMode';
       const AUDD_TOKEN_KEY = 'fachaAuddToken';
+      const STREAMING_PREFS_KEY = 'fachaStreamingPrefs';
       const form = document.getElementById('lyricsForm');
       const appShell = document.getElementById('appShell');
       const overlay = document.getElementById('deviceOverlay');
@@ -489,6 +604,9 @@
       const listenButton = document.getElementById('listenButton');
       const statusPanel = document.getElementById('assistantStatus');
       const tokenInput = document.getElementById('auddToken');
+      const streamingLinks = document.getElementById('streamingLinks');
+      const openSpotifyInput = document.getElementById('openSpotify');
+      const openYoutubeInput = document.getElementById('openYoutube');
       const fetchControllers = [];
       const supportsAbort = typeof AbortController !== 'undefined';
 
@@ -516,6 +634,100 @@
         } catch (error) {
           console.warn('No se pudo borrar localStorage', error);
         }
+      };
+
+      let lastSongMeta = null;
+
+      const hideStreamingLinks = () => {
+        if (!streamingLinks) return;
+        streamingLinks.hidden = true;
+        streamingLinks.innerHTML = '';
+      };
+
+      const normalizeUrl = (value) =>
+        typeof value === 'string' && value.trim() ? value.trim() : null;
+
+      const buildStreamingUrls = (meta = {}) => {
+        const title = `${meta?.title || ''}`.trim();
+        const artist = `${meta?.artist || ''}`.trim();
+        if (!title || !artist) return {};
+        const query = `${title} ${artist}`.trim();
+        const encodedQuery = encodeURIComponent(query);
+        return {
+          spotify: normalizeUrl(meta?.spotifyUrl) || `https://open.spotify.com/search/${encodedQuery}`,
+          youtube: normalizeUrl(meta?.youtubeUrl) || `https://www.youtube.com/results?search_query=${encodedQuery}`,
+        };
+      };
+
+      const getStreamingPreferences = () => ({
+        spotify: !!openSpotifyInput?.checked,
+        youtube: !!openYoutubeInput?.checked,
+      });
+
+      const renderStreamingLinks = (meta) => {
+        if (!streamingLinks) return;
+        if (!meta || !meta.title || !meta.artist) {
+          hideStreamingLinks();
+          return;
+        }
+        const prefs = getStreamingPreferences();
+        const urls = buildStreamingUrls(meta);
+        const buttons = [];
+        if (prefs.spotify && urls.spotify) {
+          buttons.push({
+            platform: 'spotify',
+            label: 'Abrir en Spotify',
+            emoji: '🟢',
+            url: urls.spotify,
+          });
+        }
+        if (prefs.youtube && urls.youtube) {
+          buttons.push({
+            platform: 'youtube',
+            label: 'Abrir en YouTube',
+            emoji: '▶️',
+            url: urls.youtube,
+          });
+        }
+
+        if (!buttons.length) {
+          hideStreamingLinks();
+          return;
+        }
+
+        streamingLinks.innerHTML = '';
+        const prettyTitle = `${meta.title}`.trim();
+        const prettyArtist = `${meta.artist}`.trim();
+        const caption = document.createElement('div');
+        caption.className = 'streaming-caption';
+        caption.textContent = `Abrí "${prettyTitle}" de ${prettyArtist} en:`;
+        streamingLinks.appendChild(caption);
+        const buttonsWrap = document.createElement('div');
+        buttonsWrap.className = 'streaming-buttons';
+        buttons.forEach((button) => {
+          const link = document.createElement('a');
+          link.className = 'link-button';
+          link.dataset.platform = button.platform;
+          link.href = button.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = `${button.emoji} ${button.label}`;
+          buttonsWrap.appendChild(link);
+        });
+        streamingLinks.appendChild(buttonsWrap);
+        streamingLinks.hidden = false;
+      };
+
+      const loadStreamingPreferences = () => {
+        const stored = readLocal(STREAMING_PREFS_KEY, null);
+        return {
+          spotify: stored?.spotify !== false,
+          youtube: stored?.youtube !== false,
+        };
+      };
+
+      const persistStreamingPreferences = (prefs) => {
+        writeLocal(STREAMING_PREFS_KEY, prefs);
       };
 
       const setStatus = (message = '', tone = 'info') => {
@@ -559,6 +771,25 @@
         });
 
       let cachedToken = readLocal(AUDD_TOKEN_KEY, '');
+      const streamingPreferences = loadStreamingPreferences();
+
+      if (openSpotifyInput) {
+        openSpotifyInput.checked = streamingPreferences.spotify;
+      }
+      if (openYoutubeInput) {
+        openYoutubeInput.checked = streamingPreferences.youtube;
+      }
+
+      const handleStreamingPreferenceChange = () => {
+        const prefs = getStreamingPreferences();
+        persistStreamingPreferences(prefs);
+        renderStreamingLinks(lastSongMeta);
+      };
+
+      openSpotifyInput?.addEventListener('change', handleStreamingPreferenceChange);
+      openYoutubeInput?.addEventListener('change', handleStreamingPreferenceChange);
+
+      hideStreamingLinks();
 
       const setOrientation = (mode) => {
         appShell.classList.toggle('vertical', mode === 'phone');
@@ -705,10 +936,26 @@
         if (typeof options === 'boolean') {
           normalizedOptions = { fromHistory: options };
         }
-        const { fromHistory = false, origin = 'manual', preface = '' } =
+        const { fromHistory = false, origin = 'manual', preface = '', streaming = null } =
           typeof normalizedOptions === 'object' && normalizedOptions !== null
             ? normalizedOptions
             : { fromHistory: false, origin: 'manual', preface: '' };
+
+        const streamingDetails =
+          typeof streaming === 'object' && streaming !== null ? streaming : {};
+        const resolvedTitle = `${streamingDetails.title || title}`.trim() || title;
+        const resolvedArtist = `${streamingDetails.artist || artist}`.trim() || artist;
+        const resolvedSpotifyUrl =
+          normalizeUrl(streamingDetails.spotifyUrl) || normalizeUrl(streamingDetails.spotify);
+        const resolvedYoutubeUrl =
+          normalizeUrl(streamingDetails.youtubeUrl) || normalizeUrl(streamingDetails.youtube);
+        lastSongMeta = {
+          title: resolvedTitle,
+          artist: resolvedArtist,
+          spotifyUrl: resolvedSpotifyUrl,
+          youtubeUrl: resolvedYoutubeUrl,
+        };
+        hideStreamingLinks();
 
         abortPending();
         output.classList.remove('empty');
@@ -766,6 +1013,7 @@
           setStatus('No tengo fuentes disponibles para esta búsqueda.', 'error');
           output.classList.add('empty');
           output.textContent = 'No hay fuentes configuradas para obtener letras en este momento.';
+          lastSongMeta = null;
           return;
         }
 
@@ -778,6 +1026,7 @@
             persistHistory(title, artist);
           }
           setStatus(`Letra encontrada gracias a ${result.strategy}.`, 'success');
+          renderStreamingLinks(lastSongMeta);
           const controllersSnapshot = fetchControllers.slice();
           controllersSnapshot.forEach((controller) => {
             try {
@@ -787,7 +1036,7 @@
             }
           });
           fetchControllers.length = 0;
-      } catch (error) {
+        } catch (error) {
           const lastFailure = failureLogs.length ? failureLogs[failureLogs.length - 1] : null;
           const detailMessage =
             lastFailure?.error?.message ||
@@ -797,6 +1046,8 @@
           output.innerHTML = `⚠️ FachaBot no pudo encontrar esa letra.<br /><small style="color: var(--muted);">Revisá el título o el artista e intentá de nuevo.${
             detailMessage ? ` Detalle: ${detailMessage}` : ''
           }</small>`;
+          hideStreamingLinks();
+          lastSongMeta = null;
           console.info('Estrategias agotadas', failureLogs, error);
         }
       };
@@ -885,12 +1136,39 @@
           if (payload?.status === 'success' && payload?.result?.title) {
             const detectedTitle = payload.result.title;
             const detectedArtist = payload.result.artist;
+            const resultData = payload.result || {};
+            const spotifyUrlCandidate =
+              resultData?.spotify?.external_urls?.spotify ||
+              resultData?.spotify?.url ||
+              (resultData?.spotify?.id
+                ? `https://open.spotify.com/track/${resultData.spotify.id}`
+                : null);
+            const spotifySongLinkFallback = normalizeUrl(
+              typeof resultData?.song_link === 'string' && resultData.song_link.includes('open.spotify.com')
+                ? resultData.song_link
+                : null
+            );
+            const spotifyUrl = normalizeUrl(spotifyUrlCandidate) || spotifySongLinkFallback;
+            const youtubeCandidate = resultData?.youtube || {};
+            const youtubeUrlCandidate =
+              youtubeCandidate?.url ||
+              (youtubeCandidate?.vid ? `https://www.youtube.com/watch?v=${youtubeCandidate.vid}` : null) ||
+              (typeof resultData?.video_link === 'string' && resultData.video_link.includes('youtube.com')
+                ? resultData.video_link
+                : null);
+            const youtubeUrl = normalizeUrl(youtubeUrlCandidate);
             form.querySelector('#songTitle').value = detectedTitle;
             form.querySelector('#songArtist').value = detectedArtist;
             const detectionMessage = `Detecté "${detectedTitle}" de ${detectedArtist}.`;
             fetchLyrics(detectedTitle, detectedArtist, {
               origin: 'listen',
               preface: detectionMessage,
+              streaming: {
+                title: resultData?.title || detectedTitle,
+                artist: resultData?.artist || detectedArtist,
+                spotifyUrl,
+                youtubeUrl,
+              },
             });
           } else {
             const message =
@@ -899,9 +1177,13 @@
               payload?.result ||
               'No pude reconocer esa canción.';
             setStatus(`${message} Probá acercar más el micrófono.`, 'error');
+            hideStreamingLinks();
+            lastSongMeta = null;
           }
         } catch (error) {
           setStatus(`Se cayó el reconocimiento (${error.message}).`, 'error');
+          hideStreamingLinks();
+          lastSongMeta = null;
         }
       };
 
@@ -992,6 +1274,8 @@
         if (!title || !artist) {
           output.classList.add('empty');
           output.textContent = 'Necesito título y artista para tirar magia.';
+          hideStreamingLinks();
+          lastSongMeta = null;
           return;
         }
 
