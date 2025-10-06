@@ -121,13 +121,30 @@
       transition: border-color 0.3s ease, transform 0.3s ease;
     }
 
+    .field small {
+      display: block;
+      margin-top: 0.45rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      opacity: 0.85;
+    }
+
     .field input:focus {
       outline: none;
       border-color: var(--accent-2);
       transform: translateY(-2px);
     }
 
-    button[type="submit"] {
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    button[type="submit"],
+    .primary-button {
       border: none;
       border-radius: 16px;
       padding: 1rem 1.4rem;
@@ -142,9 +159,73 @@
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-    button[type="submit"]:hover {
+    button[type="submit"]:hover,
+    .primary-button:hover {
       transform: translateY(-3px);
       box-shadow: 0 24px 46px rgba(167, 108, 255, 0.28);
+    }
+
+    .listen-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.95rem 1.3rem;
+      border-radius: 16px;
+      border: 1px solid rgba(45, 226, 230, 0.35);
+      background: rgba(45, 226, 230, 0.1);
+      color: var(--accent-2);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    }
+
+    .listen-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 32px rgba(45, 226, 230, 0.24);
+    }
+
+    .listen-button.recording {
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.25), rgba(45, 226, 230, 0.25));
+      border-color: rgba(167, 108, 255, 0.45);
+      color: var(--text);
+      box-shadow: 0 22px 36px rgba(45, 226, 230, 0.32);
+    }
+
+    .listen-button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .assistant-status {
+      padding: 0.85rem 1rem;
+      border-radius: 16px;
+      border: 1px solid rgba(45, 226, 230, 0.2);
+      background: rgba(45, 226, 230, 0.08);
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+    }
+
+    .assistant-status[data-tone='success'] {
+      background: rgba(61, 255, 197, 0.12);
+      border-color: rgba(61, 255, 197, 0.32);
+      color: #d0ffee;
+    }
+
+    .assistant-status[data-tone='error'] {
+      background: rgba(255, 111, 145, 0.12);
+      border-color: rgba(255, 111, 145, 0.35);
+      color: #ffccd9;
+    }
+
+    .assistant-status[data-tone='info'] {
+      background: rgba(167, 108, 255, 0.12);
+      border-color: rgba(167, 108, 255, 0.28);
+      color: #e5dbff;
     }
 
     .ai-panel {
@@ -282,7 +363,8 @@
       box-shadow: 0 16px 36px rgba(45, 226, 230, 0.28);
     }
 
-    .hidden {
+    .hidden,
+    [hidden] {
       display: none !important;
     }
 
@@ -335,7 +417,24 @@
           <label for="songArtist">Artista</label>
           <input id="songArtist" name="songArtist" type="text" placeholder="Ej: Luis Fonsi" required />
         </div>
-        <button type="submit">Invocar IA</button>
+        <div class="field">
+          <label for="auddToken">Token AudD (opcional)</label>
+          <input
+            id="auddToken"
+            name="auddToken"
+            type="password"
+            placeholder="Guardá tu token de AudD para reconocer música"
+          />
+          <small>Se usa solo para el botón de escucha. Si lo dejás vacío usamos el modo demo.</small>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary-button">Invocar IA</button>
+          <button type="button" id="listenButton" class="listen-button">
+            <span aria-hidden="true">🎤</span>
+            Escuchar canción
+          </button>
+        </div>
+        <div class="assistant-status" id="assistantStatus" hidden></div>
       </form>
       <div class="card">
         <div class="card-title">Historial de pedidos</div>
@@ -379,6 +478,7 @@
     (function () {
       const HISTORY_KEY = 'fachaLyricsHistory';
       const MODE_KEY = 'fachaDeviceMode';
+      const AUDD_TOKEN_KEY = 'fachaAuddToken';
       const form = document.getElementById('lyricsForm');
       const appShell = document.getElementById('appShell');
       const overlay = document.getElementById('deviceOverlay');
@@ -386,6 +486,9 @@
       const historyTemplate = document.getElementById('historyItemTemplate');
       const output = document.getElementById('lyricsOutput');
       const orientationCard = document.getElementById('orientationCard');
+      const listenButton = document.getElementById('listenButton');
+      const statusPanel = document.getElementById('assistantStatus');
+      const tokenInput = document.getElementById('auddToken');
       const fetchControllers = [];
       const supportsAbort = typeof AbortController !== 'undefined';
 
@@ -407,6 +510,56 @@
         }
       };
 
+      const removeLocal = (key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          console.warn('No se pudo borrar localStorage', error);
+        }
+      };
+
+      const setStatus = (message = '', tone = 'info') => {
+        if (!statusPanel) return;
+        if (!message) {
+          statusPanel.textContent = '';
+          statusPanel.setAttribute('hidden', '');
+          return;
+        }
+        statusPanel.textContent = message;
+        statusPanel.dataset.tone = tone;
+        statusPanel.removeAttribute('hidden');
+      };
+
+      const createAggregateError = (errors, message) => {
+        if (typeof AggregateError === 'function') {
+          return new AggregateError(errors, message);
+        }
+        const aggregate = new Error(message);
+        aggregate.errors = errors;
+        return aggregate;
+      };
+
+      const firstFulfilled = (promises) =>
+        new Promise((resolve, reject) => {
+          const errors = [];
+          let pending = promises.length;
+          if (!pending) {
+            reject(createAggregateError(errors, 'No hay promesas que resolver'));
+            return;
+          }
+          promises.forEach((promise, index) => {
+            promise.then(resolve).catch((error) => {
+              errors[index] = error;
+              pending -= 1;
+              if (pending === 0) {
+                reject(createAggregateError(errors, 'Todas las estrategias fallaron'));
+              }
+            });
+          });
+        });
+
+      let cachedToken = readLocal(AUDD_TOKEN_KEY, '');
+
       const setOrientation = (mode) => {
         appShell.classList.toggle('vertical', mode === 'phone');
         appShell.classList.toggle('horizontal', mode !== 'phone');
@@ -423,7 +576,7 @@
         item.addEventListener('click', () => {
           form.querySelector('#songTitle').value = title;
           form.querySelector('#songArtist').value = artist;
-          fetchLyrics(title, artist, true);
+          fetchLyrics(title, artist, { fromHistory: true });
         });
         return fragment;
       };
@@ -547,39 +700,289 @@
         ];
       };
 
-      const fetchLyrics = async (title, artist, fromHistory = false) => {
-        abortPending();
-        const controller = supportsAbort ? new AbortController() : null;
-        if (controller) {
-          fetchControllers.push(controller);
+      const fetchLyrics = async (title, artist, options = {}) => {
+        let normalizedOptions = options;
+        if (typeof options === 'boolean') {
+          normalizedOptions = { fromHistory: options };
         }
+        const { fromHistory = false, origin = 'manual', preface = '' } =
+          typeof normalizedOptions === 'object' && normalizedOptions !== null
+            ? normalizedOptions
+            : { fromHistory: false, origin: 'manual', preface: '' };
 
+        abortPending();
         output.classList.remove('empty');
         output.innerHTML = '🔮 FachaBot está buscando la letra...';
 
-        for (const strategy of strategiesFor(title, artist)) {
-          try {
-            const rawLyrics = await strategy.request(controller);
-            const lyrics = rawLyrics ? cleanLyrics(rawLyrics) : '';
-            if (!lyrics) {
-              throw new Error('Letra vacía');
-            }
-            output.textContent = lyrics.trim();
-            if (!fromHistory) {
-              persistHistory(title, artist);
-            }
-            return;
-          } catch (error) {
-            if (controller && controller.signal.aborted) {
-              return;
-            }
-            console.info('Fallo endpoint', strategy.name, error);
-          }
+        const strategies = strategiesFor(title, artist);
+        const messageParts = [];
+        if (preface) {
+          messageParts.push(preface);
+        }
+        if (strategies.length) {
+          const baseMessage =
+            origin === 'listen'
+              ? 'Canción detectada. Buscando la letra con todos mis oráculos.'
+              : 'Consultando mis fuentes a toda máquina.';
+          messageParts.push(`${baseMessage} (${strategies.length} en paralelo)`);
+        }
+        if (messageParts.length) {
+          setStatus(messageParts.join(' '), 'info');
+        } else {
+          setStatus('Consultando mis fuentes a toda máquina.', 'info');
         }
 
-        output.classList.add('empty');
-        output.innerHTML = `⚠️ FachaBot no pudo encontrar esa letra.<br /><small style="color: var(--muted);">Revisá el título o el artista e intentá de nuevo.</small>`;
+        const failureLogs = [];
+        const attempts = strategies.map((strategy) => {
+          const controller = supportsAbort ? new AbortController() : null;
+          if (controller) {
+            fetchControllers.push(controller);
+          }
+          const tidy = () => {
+            if (!controller) return;
+            const index = fetchControllers.indexOf(controller);
+            if (index !== -1) {
+              fetchControllers.splice(index, 1);
+            }
+          };
+          return strategy
+            .request(controller)
+            .then((rawLyrics) => {
+              tidy();
+              const lyrics = rawLyrics ? cleanLyrics(rawLyrics) : '';
+              if (!lyrics) {
+                throw new Error('Letra vacía');
+              }
+              return { lyrics: lyrics.trim(), strategy: strategy.name };
+            })
+            .catch((error) => {
+              tidy();
+              failureLogs.push({ strategy: strategy.name, error });
+              throw error;
+            });
+        });
+
+        if (!attempts.length) {
+          setStatus('No tengo fuentes disponibles para esta búsqueda.', 'error');
+          output.classList.add('empty');
+          output.textContent = 'No hay fuentes configuradas para obtener letras en este momento.';
+          return;
+        }
+
+        try {
+          const resolver =
+            typeof Promise.any === 'function' ? Promise.any(attempts) : firstFulfilled(attempts);
+          const result = await resolver;
+          output.textContent = result.lyrics;
+          if (!fromHistory) {
+            persistHistory(title, artist);
+          }
+          setStatus(`Letra encontrada gracias a ${result.strategy}.`, 'success');
+          const controllersSnapshot = fetchControllers.slice();
+          controllersSnapshot.forEach((controller) => {
+            try {
+              controller.abort();
+            } catch (abortError) {
+              console.info('No se pudo abortar una petición resuelta', abortError);
+            }
+          });
+          fetchControllers.length = 0;
+      } catch (error) {
+          const lastFailure = failureLogs.length ? failureLogs[failureLogs.length - 1] : null;
+          const detailMessage =
+            lastFailure?.error?.message ||
+            (typeof lastFailure?.error === 'string' ? lastFailure.error : '');
+          setStatus('No pude encontrar esa letra en las fuentes disponibles.', 'error');
+          output.classList.add('empty');
+          output.innerHTML = `⚠️ FachaBot no pudo encontrar esa letra.<br /><small style="color: var(--muted);">Revisá el título o el artista e intentá de nuevo.${
+            detailMessage ? ` Detalle: ${detailMessage}` : ''
+          }</small>`;
+          console.info('Estrategias agotadas', failureLogs, error);
+        }
       };
+
+      const getAuddToken = () => {
+        const typed = tokenInput?.value?.trim();
+        return typed || cachedToken || 'test';
+      };
+
+      if (tokenInput) {
+        if (cachedToken) {
+          tokenInput.value = cachedToken;
+        }
+        tokenInput.addEventListener('change', () => {
+          cachedToken = tokenInput.value.trim();
+          if (cachedToken) {
+            writeLocal(AUDD_TOKEN_KEY, cachedToken);
+          } else {
+            removeLocal(AUDD_TOKEN_KEY);
+          }
+        });
+      }
+
+      let mediaRecorder = null;
+      let audioChunks = [];
+      let listening = false;
+      let recognitionTimeoutId = null;
+      let analyzeAfterStop = true;
+      let activeStream = null;
+
+      const stopActiveStream = () => {
+        if (activeStream) {
+          activeStream.getTracks().forEach((track) => track.stop());
+          activeStream = null;
+        }
+      };
+
+      const setListenButtonContent = (icon, text) => {
+        if (!listenButton) return;
+        listenButton.innerHTML = `<span aria-hidden="true">${icon}</span><span>${text}</span>`;
+      };
+
+      const resetListenButton = () => {
+        if (!listenButton) return;
+        listenButton.classList.remove('recording');
+        listenButton.disabled = false;
+        setListenButtonContent('🎤', 'Escuchar canción');
+      };
+
+      const stopListening = (options = {}) => {
+        if (!mediaRecorder) return;
+        const { analyze = true } = options;
+        analyzeAfterStop = analyze;
+        clearTimeout(recognitionTimeoutId);
+        recognitionTimeoutId = null;
+        listening = false;
+        if (mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        } else {
+          if (!analyze) {
+            audioChunks = [];
+            setStatus('Grabación cancelada.', 'info');
+          }
+          stopActiveStream();
+        }
+      };
+
+      const identifySong = async (audioBlob) => {
+        const token = getAuddToken();
+        if (!token) {
+          setStatus('Necesitás configurar un token de AudD para reconocer canciones.', 'error');
+          return;
+        }
+        try {
+          setStatus('Analizando audio para reconocer la canción...', 'info');
+          const formData = new FormData();
+          formData.append('api_token', token);
+          formData.append('return', 'apple_music,spotify');
+          const extension = audioBlob.type.includes('webm') ? 'webm' : 'wav';
+          formData.append('file', audioBlob, `capture.${extension}`);
+          const response = await fetch('https://api.audd.io/', {
+            method: 'POST',
+            body: formData,
+          });
+          const payload = await response.json();
+          if (payload?.status === 'success' && payload?.result?.title) {
+            const detectedTitle = payload.result.title;
+            const detectedArtist = payload.result.artist;
+            form.querySelector('#songTitle').value = detectedTitle;
+            form.querySelector('#songArtist').value = detectedArtist;
+            const detectionMessage = `Detecté "${detectedTitle}" de ${detectedArtist}.`;
+            fetchLyrics(detectedTitle, detectedArtist, {
+              origin: 'listen',
+              preface: detectionMessage,
+            });
+          } else {
+            const message =
+              payload?.error?.message ||
+              payload?.status_message ||
+              payload?.result ||
+              'No pude reconocer esa canción.';
+            setStatus(`${message} Probá acercar más el micrófono.`, 'error');
+          }
+        } catch (error) {
+          setStatus(`Se cayó el reconocimiento (${error.message}).`, 'error');
+        }
+      };
+
+      const startListening = async () => {
+        if (!listenButton || listening) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setStatus('Tu navegador no permite acceder al micrófono.', 'error');
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          activeStream = stream;
+          audioChunks = [];
+          const supportsWebm =
+            typeof MediaRecorder !== 'undefined' &&
+            typeof MediaRecorder.isTypeSupported === 'function' &&
+            MediaRecorder.isTypeSupported('audio/webm;codecs=opus');
+          mediaRecorder = supportsWebm
+            ? new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+            : new MediaRecorder(stream);
+          analyzeAfterStop = true;
+          mediaRecorder.addEventListener('dataavailable', (event) => {
+            if (event.data && event.data.size) {
+              audioChunks.push(event.data);
+            }
+          });
+          mediaRecorder.addEventListener('stop', async () => {
+            stopActiveStream();
+            const capturedChunks = audioChunks.slice();
+            audioChunks = [];
+            mediaRecorder = null;
+            listening = false;
+            listenButton.classList.remove('recording');
+            setListenButtonContent('🎤', 'Escuchar otra vez');
+            if (!analyzeAfterStop) {
+              setStatus('Grabación cancelada.', 'info');
+              return;
+            }
+            const blobType = capturedChunks[0]?.type || 'audio/webm';
+            const audioBlob = new Blob(capturedChunks, { type: blobType });
+            if (!audioBlob.size) {
+              setStatus('No se capturó audio. Probá subir el volumen.', 'error');
+              return;
+            }
+            await identifySong(audioBlob);
+          });
+          mediaRecorder.start();
+          listening = true;
+          listenButton.classList.add('recording');
+          setListenButtonContent('⏹️', 'Detener escucha');
+          setStatus('🎧 Escuchando... acercá el micrófono a la música.', 'info');
+          recognitionTimeoutId = window.setTimeout(() => {
+            if (listening) {
+              setStatus('Procesando la muestra capturada...', 'info');
+              stopListening({ analyze: true });
+            }
+          }, 6000);
+        } catch (error) {
+          setStatus(`No pude usar tu micrófono: ${error.message}`, 'error');
+          stopListening({ analyze: false });
+          stopActiveStream();
+          resetListenButton();
+        }
+      };
+
+      if (listenButton) {
+        if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          listenButton.disabled = true;
+          listenButton.title = 'Tu navegador no soporta la captura de audio.';
+        } else {
+          setListenButtonContent('🎤', 'Escuchar canción');
+          listenButton.addEventListener('click', () => {
+            if (listening) {
+              setStatus('Procesando la muestra capturada...', 'info');
+              stopListening({ analyze: true });
+            } else {
+              startListening();
+            }
+          });
+        }
+      }
 
       form.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -608,6 +1011,7 @@
       });
 
       window.addEventListener('load', () => {
+        setStatus('Listo para buscar tu próximo hit.', 'info');
         renderHistory();
         const storedMode = readLocal(MODE_KEY, null);
         if (storedMode) {
