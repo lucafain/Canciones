@@ -20,6 +20,9 @@
       --text: #f8f9ff;
       --muted: rgba(248, 249, 255, 0.68);
       --danger: #ff6f91;
+      --lyrics-scale: 1;
+      --square-rotate-x: 12deg;
+      --square-rotate-y: -8deg;
     }
 
     *, *::before, *::after {
@@ -51,6 +54,23 @@
       transition: grid-template-columns 0.45s ease, transform 0.45s ease;
     }
 
+    .accent-square {
+      position: absolute;
+      top: -18%;
+      right: -12%;
+      width: clamp(260px, 42vw, 460px);
+      aspect-ratio: 1;
+      border-radius: 36px;
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.5), rgba(45, 226, 230, 0.4));
+      box-shadow: 0 40px 120px rgba(45, 226, 230, 0.25);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      transform: translate(18%, -18%) rotateX(var(--square-rotate-x)) rotateY(var(--square-rotate-y)) rotate(45deg);
+      transition: transform 0.4s ease, opacity 0.6s ease;
+      z-index: 0;
+      opacity: 0.9;
+    }
+
     .app-shell.vertical {
       grid-template-columns: 1fr;
       transform: perspective(1200px) rotateX(4deg);
@@ -64,6 +84,7 @@
       padding: clamp(1.8rem, 4vw, 3.3rem);
       position: relative;
       overflow: hidden;
+      z-index: 1;
     }
 
     .panel::after {
@@ -120,6 +141,87 @@
       color: inherit;
       font-size: 1rem;
       transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .slider-field {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .slider-field .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .slider-field .slider-icon {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .slider-field .slider-icon.slider-icon--large {
+      font-size: 1.1rem;
+    }
+
+    .slider-field input[type='range'] {
+      flex: 1;
+      appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(167, 108, 255, 0.3);
+      outline: none;
+    }
+
+    .slider-field input[type='range']::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none;
+      box-shadow: 0 8px 18px rgba(45, 226, 230, 0.35);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .slider-field input[type='range']::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none;
+      box-shadow: 0 8px 18px rgba(45, 226, 230, 0.35);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .slider-field input[type='range']::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(167, 108, 255, 0.3);
+    }
+
+    .slider-field input[type='range']:active::-webkit-slider-thumb,
+    .slider-field input[type='range']:focus-visible::-webkit-slider-thumb,
+    .slider-field input[type='range']:active::-moz-range-thumb,
+    .slider-field input[type='range']:focus-visible::-moz-range-thumb {
+      transform: scale(1.1);
+    }
+
+    .slider-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.6rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+    }
+
+    .slider-meta .scale-value {
+      font-weight: 600;
+      color: var(--accent-2);
     }
 
     .field small {
@@ -324,6 +426,7 @@
       line-height: 1.6;
       white-space: pre-wrap;
       color: var(--text);
+      font-size: calc(var(--lyrics-scale, 1) * 1rem);
     }
 
     .ai-output.empty {
@@ -476,6 +579,13 @@
         border-radius: 22px;
       }
 
+      .accent-square {
+        top: -22%;
+        right: -4%;
+        width: clamp(220px, 58vw, 360px);
+        opacity: 0.7;
+      }
+
       .ai-panel {
         border-left: none;
         border-top: 1px solid rgba(167, 108, 255, 0.2);
@@ -500,6 +610,7 @@
   </div>
 
   <div class="app-shell" id="appShell">
+    <div class="accent-square" id="accentSquare" aria-hidden="true"></div>
     <section class="panel">
       <header>
         <h1>FachaLyrics<span>.AI</span></h1>
@@ -539,6 +650,28 @@
             </label>
           </div>
           <small>Elegí dónde querés abrir la canción cuando encontremos la letra.</small>
+        </div>
+        <div class="field slider-field">
+          <span class="field-label" id="lyricScaleLabel">Tamaño de letra</span>
+          <div class="slider-wrap">
+            <span class="slider-icon" aria-hidden="true">Aa</span>
+            <input
+              type="range"
+              id="lyricScale"
+              name="lyricScale"
+              min="0.9"
+              max="1.4"
+              step="0.05"
+              value="1"
+              aria-labelledby="lyricScaleLabel"
+              aria-describedby="lyricScaleHint lyricScaleValue"
+            />
+            <span class="slider-icon slider-icon--large" aria-hidden="true">Aa</span>
+          </div>
+          <div class="slider-meta">
+            <span class="scale-value" id="lyricScaleValue">100%</span>
+            <span id="lyricScaleHint">Ajustá el tamaño de la letra generada a tu gusto.</span>
+          </div>
         </div>
         <div class="actions">
           <button type="submit" class="primary-button">Invocar IA</button>
@@ -594,6 +727,7 @@
       const MODE_KEY = 'fachaDeviceMode';
       const AUDD_TOKEN_KEY = 'fachaAuddToken';
       const STREAMING_PREFS_KEY = 'fachaStreamingPrefs';
+      const LYRICS_SCALE_KEY = 'fachaLyricsScale';
       const form = document.getElementById('lyricsForm');
       const appShell = document.getElementById('appShell');
       const overlay = document.getElementById('deviceOverlay');
@@ -607,6 +741,9 @@
       const streamingLinks = document.getElementById('streamingLinks');
       const openSpotifyInput = document.getElementById('openSpotify');
       const openYoutubeInput = document.getElementById('openYoutube');
+      const lyricScaleInput = document.getElementById('lyricScale');
+      const lyricScaleValue = document.getElementById('lyricScaleValue');
+      const accentSquare = document.getElementById('accentSquare');
       const fetchControllers = [];
       const supportsAbort = typeof AbortController !== 'undefined';
 
@@ -635,6 +772,13 @@
           console.warn('No se pudo borrar localStorage', error);
         }
       };
+
+      const toNumber = (value, fallback) => {
+        const numeric = typeof value === 'number' ? value : parseFloat(value);
+        return Number.isFinite(numeric) ? numeric : fallback;
+      };
+
+      const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
       let lastSongMeta = null;
 
@@ -730,6 +874,37 @@
         writeLocal(STREAMING_PREFS_KEY, prefs);
       };
 
+      const lyricScaleConfig = {
+        min: toNumber(lyricScaleInput?.min, 0.9),
+        max: toNumber(lyricScaleInput?.max, 1.4),
+        default: toNumber(lyricScaleInput?.value, 1),
+      };
+
+      const setLyricScale = (scale) => {
+        const numeric = toNumber(scale, lyricScaleConfig.default);
+        const normalized = clamp(numeric, lyricScaleConfig.min, lyricScaleConfig.max);
+        document.documentElement.style.setProperty('--lyrics-scale', normalized.toString());
+        if (lyricScaleInput && lyricScaleInput.value !== normalized.toString()) {
+          lyricScaleInput.value = normalized;
+        }
+        if (lyricScaleValue) {
+          const displayValue = Math.round(normalized * 100);
+          lyricScaleValue.textContent = `${displayValue}%`;
+        }
+        return normalized;
+      };
+
+      const storedLyricScale = readLocal(LYRICS_SCALE_KEY, lyricScaleConfig.default);
+      const initialLyricScale = toNumber(storedLyricScale, lyricScaleConfig.default);
+      setLyricScale(initialLyricScale);
+
+      if (lyricScaleInput) {
+        lyricScaleInput.addEventListener('input', (event) => {
+          const normalized = setLyricScale(event.target.value);
+          writeLocal(LYRICS_SCALE_KEY, normalized);
+        });
+      }
+
       const setStatus = (message = '', tone = 'info') => {
         if (!statusPanel) return;
         if (!message) {
@@ -798,6 +973,76 @@
         orientationCard.style.display = 'block';
         writeLocal(MODE_KEY, mode);
       };
+
+      if (accentSquare) {
+        const pointerMedia = window.matchMedia('(pointer: fine)');
+        const baseRotation = { x: 12, y: -8 };
+        const tiltRange = 12;
+
+        const setSquareRotation = (x, y) => {
+          accentSquare.style.setProperty('--square-rotate-x', `${x.toFixed(2)}deg`);
+          accentSquare.style.setProperty('--square-rotate-y', `${y.toFixed(2)}deg`);
+        };
+
+        const resetSquare = () => {
+          setSquareRotation(baseRotation.x, baseRotation.y);
+        };
+
+        let pointerHandlersAttached = false;
+
+        const handlePointerMove = (event) => {
+          const { innerWidth, innerHeight } = window;
+          if (!innerWidth || !innerHeight) return;
+          const percentX = ((event.clientX || 0) / innerWidth - 0.5) * 2;
+          const percentY = ((event.clientY || 0) / innerHeight - 0.5) * 2;
+          const rotateX = clamp(baseRotation.x - percentY * tiltRange, baseRotation.x - tiltRange, baseRotation.x + tiltRange);
+          const rotateY = clamp(baseRotation.y + percentX * tiltRange, baseRotation.y - tiltRange, baseRotation.y + tiltRange);
+          setSquareRotation(rotateX, rotateY);
+        };
+
+        const handlePointerLeave = () => {
+          resetSquare();
+        };
+
+        const attachPointerHandlers = () => {
+          if (pointerHandlersAttached) return;
+          window.addEventListener('pointermove', handlePointerMove);
+          document.body.addEventListener('pointerleave', handlePointerLeave);
+          window.addEventListener('blur', resetSquare);
+          window.addEventListener('resize', resetSquare);
+          pointerHandlersAttached = true;
+        };
+
+        const detachPointerHandlers = () => {
+          if (!pointerHandlersAttached) return;
+          window.removeEventListener('pointermove', handlePointerMove);
+          document.body.removeEventListener('pointerleave', handlePointerLeave);
+          window.removeEventListener('blur', resetSquare);
+          window.removeEventListener('resize', resetSquare);
+          pointerHandlersAttached = false;
+          resetSquare();
+        };
+
+        const handlePointerPreferenceChange = (event) => {
+          if (event.matches) {
+            attachPointerHandlers();
+          } else {
+            detachPointerHandlers();
+          }
+        };
+
+        if (pointerMedia.matches) {
+          attachPointerHandlers();
+        } else {
+          resetSquare();
+        }
+
+        if (typeof pointerMedia.addEventListener === 'function') {
+          pointerMedia.addEventListener('change', handlePointerPreferenceChange);
+        } else if (typeof pointerMedia.addListener === 'function') {
+          pointerMedia.addListener(handlePointerPreferenceChange);
+        }
+      }
 
       const formatHistoryItem = ({ title, artist }) => {
         const fragment = historyTemplate.content.cloneNode(true);
