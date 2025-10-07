@@ -27,6 +27,7 @@
       --shell-base-rotate-y: -4deg;
       --shell-tilt-x: 0deg;
       --shell-tilt-y: 0deg;
+      --pc-cursor: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMicgaGVpZ2h0PSczMicgdmlld0JveD0nMCAwIDMyIDMyJz4KPHJlY3QgeD0nMTgnIHk9JzMnIHdpZHRoPSc0JyBoZWlnaHQ9JzE4JyByeD0nMS42JyBmaWxsPScjQTc2Q0ZGJy8+CjxlbGxpcHNlIGN4PScxNCcgY3k9JzIzLjUnIHJ4PSc2LjInIHJ5PSc1JyB0cmFuc2Zvcm09J3JvdGF0ZSgtMjAgMTQgMjMuNSknIGZpbGw9JyNBNzZDRkYnLz4KPHBhdGggZmlsbD0nIzJERTJFNicgZD0nTTIyIDNjNCAyIDYgNSA2IDguNWwtMyAuN2MwLTIuNi0xLjYtNC43LTMtNS43VjN6Jy8+Cjwvc3ZnPg==") 6 4, auto;
     }
 
     *, *::before, *::after {
@@ -43,6 +44,24 @@
       font-family: 'Poppins', sans-serif;
       background: radial-gradient(circle at top left, var(--bg-start), var(--bg-end) 70%);
       color: var(--text);
+    }
+
+    body.pc-cursor {
+      cursor: var(--pc-cursor);
+    }
+
+    body.pc-cursor *,
+    body.pc-cursor *::before,
+    body.pc-cursor *::after {
+      cursor: var(--pc-cursor) !important;
+    }
+
+    body.pc-cursor input[type='text'],
+    body.pc-cursor input[type='search'],
+    body.pc-cursor input[type='email'],
+    body.pc-cursor input[type='password'],
+    body.pc-cursor textarea {
+      cursor: text !important;
     }
 
     .app-shell {
@@ -765,6 +784,7 @@
       const AUDD_TOKEN_KEY = 'fachaAuddToken';
       const STREAMING_PREFS_KEY = 'fachaStreamingPrefs';
       const LYRICS_SCALE_KEY = 'fachaLyricsScale';
+      const body = document.body;
       const form = document.getElementById('lyricsForm');
       const appShell = document.getElementById('appShell');
       const overlay = document.getElementById('deviceOverlay');
@@ -1004,8 +1024,10 @@
       hideStreamingLinks();
 
       const setOrientation = (mode) => {
-        appShell.classList.toggle('vertical', mode === 'phone');
-        appShell.classList.toggle('horizontal', mode !== 'phone');
+        const isPhone = mode === 'phone';
+        appShell.classList.toggle('vertical', isPhone);
+        appShell.classList.toggle('horizontal', !isPhone);
+        body?.classList.toggle('pc-cursor', !isPhone);
         overlay.classList.add('hidden');
         orientationCard.style.display = 'block';
         writeLocal(MODE_KEY, mode);
