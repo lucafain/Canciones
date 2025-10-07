@@ -23,6 +23,10 @@
       --lyrics-scale: 1;
       --square-rotate-x: 12deg;
       --square-rotate-y: -8deg;
+      --shell-base-rotate-x: 0deg;
+      --shell-base-rotate-y: -4deg;
+      --shell-tilt-x: 0deg;
+      --shell-tilt-y: 0deg;
     }
 
     *, *::before, *::after {
@@ -52,6 +56,9 @@
       display: grid;
       grid-template-columns: 1.05fr 0.95fr;
       transition: grid-template-columns 0.45s ease, transform 0.45s ease;
+      transform: perspective(1200px)
+        rotateX(calc(var(--shell-base-rotate-x) + var(--shell-tilt-x)))
+        rotateY(calc(var(--shell-base-rotate-y) + var(--shell-tilt-y)));
     }
 
     .accent-square {
@@ -73,11 +80,13 @@
 
     .app-shell.vertical {
       grid-template-columns: 1fr;
-      transform: perspective(1200px) rotateX(4deg);
+      --shell-base-rotate-x: 4deg;
+      --shell-base-rotate-y: 0deg;
     }
 
     .app-shell.horizontal {
-      transform: perspective(1200px) rotateY(-4deg);
+      --shell-base-rotate-x: 0deg;
+      --shell-base-rotate-y: -4deg;
     }
 
     .panel {
@@ -1002,18 +1011,27 @@
         writeLocal(MODE_KEY, mode);
       };
 
-      if (accentSquare) {
+      if (accentSquare || appShell) {
         const pointerMedia = window.matchMedia('(pointer: fine)');
         const baseRotation = { x: 12, y: -8 };
-        const tiltRange = 12;
+        const squareTiltRange = 12;
+        const shellTiltRange = 5;
 
         const setSquareRotation = (x, y) => {
+          if (!accentSquare) return;
           accentSquare.style.setProperty('--square-rotate-x', `${x.toFixed(2)}deg`);
           accentSquare.style.setProperty('--square-rotate-y', `${y.toFixed(2)}deg`);
         };
 
-        const resetSquare = () => {
+        const setShellTilt = (x, y) => {
+          if (!appShell) return;
+          appShell.style.setProperty('--shell-tilt-x', `${x.toFixed(2)}deg`);
+          appShell.style.setProperty('--shell-tilt-y', `${y.toFixed(2)}deg`);
+        };
+
+        const resetPointerDynamics = () => {
           setSquareRotation(baseRotation.x, baseRotation.y);
+          setShellTilt(0, 0);
         };
 
         let pointerHandlersAttached = false;
@@ -1023,21 +1041,32 @@
           if (!innerWidth || !innerHeight) return;
           const percentX = ((event.clientX || 0) / innerWidth - 0.5) * 2;
           const percentY = ((event.clientY || 0) / innerHeight - 0.5) * 2;
-          const rotateX = clamp(baseRotation.x - percentY * tiltRange, baseRotation.x - tiltRange, baseRotation.x + tiltRange);
-          const rotateY = clamp(baseRotation.y + percentX * tiltRange, baseRotation.y - tiltRange, baseRotation.y + tiltRange);
+          const rotateX = clamp(
+            baseRotation.x - percentY * squareTiltRange,
+            baseRotation.x - squareTiltRange,
+            baseRotation.x + squareTiltRange,
+          );
+          const rotateY = clamp(
+            baseRotation.y + percentX * squareTiltRange,
+            baseRotation.y - squareTiltRange,
+            baseRotation.y + squareTiltRange,
+          );
+          const shellTiltX = clamp(-percentY * shellTiltRange, -shellTiltRange, shellTiltRange);
+          const shellTiltY = clamp(percentX * shellTiltRange, -shellTiltRange, shellTiltRange);
           setSquareRotation(rotateX, rotateY);
+          setShellTilt(shellTiltX, shellTiltY);
         };
 
         const handlePointerLeave = () => {
-          resetSquare();
+          resetPointerDynamics();
         };
 
         const attachPointerHandlers = () => {
           if (pointerHandlersAttached) return;
           window.addEventListener('pointermove', handlePointerMove);
           document.body.addEventListener('pointerleave', handlePointerLeave);
-          window.addEventListener('blur', resetSquare);
-          window.addEventListener('resize', resetSquare);
+          window.addEventListener('blur', resetPointerDynamics);
+          window.addEventListener('resize', resetPointerDynamics);
           pointerHandlersAttached = true;
         };
 
@@ -1045,10 +1074,10 @@
           if (!pointerHandlersAttached) return;
           window.removeEventListener('pointermove', handlePointerMove);
           document.body.removeEventListener('pointerleave', handlePointerLeave);
-          window.removeEventListener('blur', resetSquare);
-          window.removeEventListener('resize', resetSquare);
+          window.removeEventListener('blur', resetPointerDynamics);
+          window.removeEventListener('resize', resetPointerDynamics);
           pointerHandlersAttached = false;
-          resetSquare();
+          resetPointerDynamics();
         };
 
         const handlePointerPreferenceChange = (event) => {
@@ -1062,7 +1091,7 @@
         if (pointerMedia.matches) {
           attachPointerHandlers();
         } else {
-          resetSquare();
+          resetPointerDynamics();
         }
 
         if (typeof pointerMedia.addEventListener === 'function') {
