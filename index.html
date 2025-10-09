@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FachaLyrics.AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-size: clamp(15px, 1.2vw + 12px, 18px);
+      --bg-start: #0a041d;
+      --bg-end: #120f33;
+      --glass: rgba(19, 20, 44, 0.82);
+      --glass-soft: rgba(25, 27, 70, 0.55);
+      --accent: #a76cff;
+      --accent-2: #2de2e6;
+      --text: #f8f9ff;
+      --muted: rgba(248, 249, 255, 0.68);
+      --danger: #ff6f91;
+      --lyrics-scale: 1;
+      --square-rotate-x: 12deg;
+      --square-rotate-y: -8deg;
+      --shell-base-rotate-x: 0deg;
+      --shell-base-rotate-y: -4deg;
+      --shell-tilt-x: 0deg;
+      --shell-tilt-y: 0deg;
+      --pc-cursor: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMicgaGVpZ2h0PSczMicgdmlld0JveD0nMCAwIDMyIDMyJz4KPHJlY3QgeD0nMTgnIHk9JzMnIHdpZHRoPSc0JyBoZWlnaHQ9JzE4JyByeD0nMS42JyBmaWxsPScjQTc2Q0ZGJy8+CjxlbGxpcHNlIGN4PScxNCcgY3k9JzIzLjUnIHJ4PSc2LjInIHJ5PSc1JyB0cmFuc2Zvcm09J3JvdGF0ZSgtMjAgMTQgMjMuNSknIGZpbGw9JyNBNzZDRkYnLz4KPHBhdGggZmlsbD0nIzJERTJFNicgZD0nTTIyIDNjNCAyIDYgNSA2IDguNWwtMyAuN2MwLTIuNi0xLjYtNC43LTMtNS43VjN6Jy8+Cjwvc3ZnPg==") 6 4, auto;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: clamp(1.2rem, 4vw, 3.5rem);
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(circle at top left, var(--bg-start), var(--bg-end) 70%);
+      color: var(--text);
+    }
+
+    body.pc-cursor {
+      cursor: var(--pc-cursor);
+    }
+
+    body.pc-cursor *,
+    body.pc-cursor *::before,
+    body.pc-cursor *::after {
+      cursor: var(--pc-cursor) !important;
+    }
+
+    .app-shell {
+      position: relative;
+      width: min(1180px, 100%);
+      border-radius: 28px;
+      border: 1px solid rgba(167, 108, 255, 0.25);
+      overflow: hidden;
+      background: linear-gradient(160deg, rgba(14, 14, 36, 0.9), rgba(7, 7, 21, 0.95));
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      transition: grid-template-columns 0.45s ease, transform 0.45s ease;
+      transform: perspective(1200px)
+        rotateX(calc(var(--shell-base-rotate-x) + var(--shell-tilt-x)))
+        rotateY(calc(var(--shell-base-rotate-y) + var(--shell-tilt-y)));
+    }
+
+    .accent-square {
+      position: absolute;
+      top: -18%;
+      right: -12%;
+      width: clamp(260px, 42vw, 460px);
+      aspect-ratio: 1;
+      border-radius: 36px;
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.5), rgba(45, 226, 230, 0.4));
+      box-shadow: 0 40px 120px rgba(45, 226, 230, 0.25);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      transform: translate(18%, -18%) rotateX(var(--square-rotate-x)) rotateY(var(--square-rotate-y)) rotate(45deg);
+      transition: transform 0.4s ease, opacity 0.6s ease;
+      z-index: 0;
+      opacity: 0.9;
+    }
+
+    .app-shell.vertical {
+      grid-template-columns: 1fr;
+      --shell-base-rotate-x: 4deg;
+      --shell-base-rotate-y: 0deg;
+    }
+
+    .app-shell.horizontal {
+      --shell-base-rotate-x: 0deg;
+      --shell-base-rotate-y: -4deg;
+    }
+
+    .panel {
+      padding: clamp(1.8rem, 4vw, 3.3rem);
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 15%, rgba(167, 108, 255, 0.15), transparent 55%);
+      pointer-events: none;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(2.3rem, 5vw, 3.6rem);
+      letter-spacing: 0.03em;
+    }
+
+    header h1 span {
+      color: var(--accent-2);
+    }
+
+    header p {
+      margin: 0.6rem 0 2.1rem;
+      color: var(--muted);
+      font-weight: 300;
+      max-width: 42ch;
+    }
+
+    form {
+      display: grid;
+      gap: 1rem;
+      padding: 1.6rem;
+      border-radius: 22px;
+      background: var(--glass);
+      border: 1px solid rgba(167, 108, 255, 0.18);
+      backdrop-filter: blur(14px);
+    }
+
+    .field label,
+    .field .field-label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 0.45rem;
+      color: var(--muted);
+    }
+
+    .field input {
+      width: 100%;
+      padding: 0.95rem 1.1rem;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.08);
+      color: inherit;
+      font-size: 1rem;
+      transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .slider-field {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .slider-field .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .slider-field .slider-icon {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .slider-field .slider-icon.slider-icon--large {
+      font-size: 1.1rem;
+    }
+
+    .slider-field input[type='range'] {
+      flex: 1;
+      appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(167, 108, 255, 0.3);
+      outline: none;
+    }
+
+    .slider-field input[type='range']::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none;
+      box-shadow: 0 8px 18px rgba(45, 226, 230, 0.35);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .slider-field input[type='range']::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none;
+      box-shadow: 0 8px 18px rgba(45, 226, 230, 0.35);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .slider-field input[type='range']::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(167, 108, 255, 0.3);
+    }
+
+    .slider-field input[type='range']:active::-webkit-slider-thumb,
+    .slider-field input[type='range']:focus-visible::-webkit-slider-thumb,
+    .slider-field input[type='range']:active::-moz-range-thumb,
+    .slider-field input[type='range']:focus-visible::-moz-range-thumb {
+      transform: scale(1.1);
+    }
+
+    .slider-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.6rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+    }
+
+    .slider-meta .scale-value {
+      font-weight: 600;
+      color: var(--accent-2);
+    }
+
+    .field small {
+      display: block;
+      margin-top: 0.45rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      opacity: 0.88;
+      line-height: 1.5;
+    }
+
+    .field small a {
+      color: var(--accent-2);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .field small a:hover,
+    .field small a:focus-visible {
+      text-decoration: underline;
+    }
+
+    .field input.input-error {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 2px rgba(255, 111, 145, 0.2);
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: var(--accent-2);
+      transform: translateY(-2px);
+    }
+
+    .options-field {
+      padding-bottom: 0.4rem;
+    }
+
+    .toggle-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .toggle {
+      position: relative;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(45, 226, 230, 0.35);
+      background: rgba(45, 226, 230, 0.08);
+      transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+      cursor: pointer;
+    }
+
+    .toggle:hover {
+      transform: translateY(-2px);
+    }
+
+    .toggle input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .toggle span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.55rem 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--accent-2);
+      transition: color 0.3s ease;
+    }
+
+    .toggle input:checked + span {
+      color: #060513;
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.9), rgba(45, 226, 230, 0.9));
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    button[type="submit"],
+    .primary-button {
+      border: none;
+      border-radius: 16px;
+      padding: 1rem 1.4rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #060513;
+      box-shadow: 0 18px 38px rgba(45, 226, 230, 0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button[type="submit"]:hover,
+    .primary-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 24px 46px rgba(167, 108, 255, 0.28);
+    }
+
+    .listen-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.95rem 1.3rem;
+      border-radius: 16px;
+      border: 1px solid rgba(45, 226, 230, 0.35);
+      background: rgba(45, 226, 230, 0.1);
+      color: var(--accent-2);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    }
+
+    .listen-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 32px rgba(45, 226, 230, 0.24);
+    }
+
+    .listen-button.recording {
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.25), rgba(45, 226, 230, 0.25));
+      border-color: rgba(167, 108, 255, 0.45);
+      color: var(--text);
+      box-shadow: 0 22px 36px rgba(45, 226, 230, 0.32);
+    }
+
+    .listen-button.processing {
+      background: rgba(167, 108, 255, 0.18);
+      border-color: rgba(167, 108, 255, 0.4);
+      color: var(--text);
+      box-shadow: 0 18px 32px rgba(167, 108, 255, 0.28);
+      cursor: wait;
+    }
+
+    .listen-button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .assistant-status {
+      padding: 0.85rem 1rem;
+      border-radius: 16px;
+      border: 1px solid rgba(45, 226, 230, 0.2);
+      background: rgba(45, 226, 230, 0.08);
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+    }
+
+    .assistant-status[data-tone='success'] {
+      background: rgba(61, 255, 197, 0.12);
+      border-color: rgba(61, 255, 197, 0.32);
+      color: #d0ffee;
+    }
+
+    .assistant-status[data-tone='error'] {
+      background: rgba(255, 111, 145, 0.12);
+      border-color: rgba(255, 111, 145, 0.35);
+      color: #ffccd9;
+    }
+
+    .assistant-status[data-tone='info'] {
+      background: rgba(167, 108, 255, 0.12);
+      border-color: rgba(167, 108, 255, 0.28);
+      color: #e5dbff;
+    }
+
+    .ai-panel {
+      background: rgba(9, 11, 36, 0.85);
+      border-left: 1px solid rgba(167, 108, 255, 0.2);
+      display: grid;
+      grid-auto-rows: min-content;
+      gap: 1.3rem;
+    }
+
+    .card {
+      position: relative;
+      border-radius: 22px;
+      padding: 1.6rem;
+      background: var(--glass-soft);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(167, 108, 255, 0.12);
+      backdrop-filter: blur(18px);
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .card-title::before {
+      content: '';
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 12px rgba(45, 226, 230, 0.55);
+    }
+
+    .ai-output {
+      min-height: 220px;
+      max-height: 360px;
+      overflow-y: auto;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      color: var(--text);
+      font-size: calc(var(--lyrics-scale, 1) * 1rem);
+    }
+
+    .ai-output.empty {
+      color: var(--muted);
+      text-align: center;
+      display: grid;
+      place-items: center;
+    }
+
+    .streaming-links {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid rgba(167, 108, 255, 0.2);
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .streaming-caption {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(248, 249, 255, 0.7);
+    }
+
+    .streaming-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.2rem;
+      border-radius: 14px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-decoration: none;
+      color: #060513;
+      background: linear-gradient(135deg, rgba(167, 108, 255, 0.85), rgba(45, 226, 230, 0.9));
+      box-shadow: 0 16px 34px rgba(45, 226, 230, 0.26);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .link-button[data-platform='youtube'] {
+      background: linear-gradient(135deg, rgba(255, 111, 145, 0.9), rgba(167, 108, 255, 0.9));
+      color: #fff;
+    }
+
+    .link-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 24px 42px rgba(167, 108, 255, 0.32);
+    }
+
+    .history-list {
+      display: grid;
+      gap: 0.85rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.8rem;
+      padding: 0.9rem 1.1rem;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .history-item:hover {
+      transform: translateY(-3px);
+      border-color: rgba(167, 108, 255, 0.35);
+    }
+
+    .history-item span {
+      display: block;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .device-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      background: rgba(5, 5, 18, 0.92);
+      text-align: center;
+      z-index: 5;
+    }
+
+    .device-card {
+      max-width: 420px;
+      padding: 2rem;
+      border-radius: 24px;
+      background: rgba(15, 14, 36, 0.92);
+      border: 1px solid rgba(167, 108, 255, 0.28);
+      display: grid;
+      gap: 1.2rem;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .device-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .device-buttons button,
+    .device-switch {
+      padding: 0.85rem 1.6rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #050414;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .device-buttons button:hover,
+    .device-switch:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 36px rgba(45, 226, 230, 0.28);
+    }
+
+    .hidden,
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 960px) {
+      body {
+        padding: 1.2rem;
+      }
+
+      .app-shell {
+        border-radius: 22px;
+      }
+
+      .accent-square {
+        top: -22%;
+        right: -4%;
+        width: clamp(220px, 58vw, 360px);
+        opacity: 0.7;
+      }
+
+      .ai-panel {
+        border-left: none;
+        border-top: 1px solid rgba(167, 108, 255, 0.2);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="device-overlay" id="deviceOverlay">
+    <div class="device-card">
+      <div>
+        <h2 style="margin: 0 0 0.6rem; font-size: 2.1rem;">¿Desde dónde te conectás?</h2>
+        <p style="margin: 0; color: var(--muted);">
+          Elegí tu dispositivo para acomodar la interfaz. Si cambiás de idea, podés alternar desde el menú más tarde.
+        </p>
+      </div>
+      <div class="device-buttons">
+        <button type="button" data-device="phone">Modo Teléfono</button>
+        <button type="button" data-device="desktop">Modo PC</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <div class="accent-square" id="accentSquare" aria-hidden="true"></div>
+    <section class="panel">
+      <header>
+        <h1>FachaLyrics<span>.AI</span></h1>
+        <p>
+          Pedile a nuestro asistente facha la letra completa de cualquier canción. Solo completá el título y el artista.
+        </p>
+      </header>
+      <form id="lyricsForm" autocomplete="off">
+        <div class="field">
+          <label for="songTitle">Título de la canción</label>
+          <input id="songTitle" name="songTitle" type="text" placeholder="Ej: Despacito" required />
+        </div>
+        <div class="field">
+          <label for="songArtist">Artista</label>
+          <input id="songArtist" name="songArtist" type="text" placeholder="Ej: Luis Fonsi" required />
+        </div>
+        <div class="field">
+          <label for="auddToken">Token AudD</label>
+          <input
+            id="auddToken"
+            name="auddToken"
+            type="password"
+            placeholder="Pegá tu token de AudD para reconocer música"
+          />
+          <small>
+            Necesitás este token para usar el botón de escucha. Podés conseguirlo gratis en
+            <a href="https://dashboard.audd.io" target="_blank" rel="noreferrer">dashboard.audd.io</a>.
+          </small>
+        </div>
+        <div class="field options-field">
+          <span class="field-label">Acceso directo</span>
+          <div class="toggle-group" role="group" aria-label="Elegí plataformas para abrir la canción">
+            <label class="toggle">
+              <input type="checkbox" id="openSpotify" checked />
+              <span>🟢 Spotify</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="openYoutube" checked />
+              <span>▶️ YouTube</span>
+            </label>
+          </div>
+          <small>Elegí dónde querés abrir la canción cuando encontremos la letra.</small>
+        </div>
+        <div class="field slider-field">
+          <span class="field-label" id="lyricScaleLabel">Tamaño de letra</span>
+          <div class="slider-wrap">
+            <span class="slider-icon" aria-hidden="true">Aa</span>
+            <input
+              type="range"
+              id="lyricScale"
+              name="lyricScale"
+              min="0.9"
+              max="1.4"
+              step="0.05"
+              value="1"
+              aria-labelledby="lyricScaleLabel"
+              aria-describedby="lyricScaleHint lyricScaleValue"
+            />
+            <span class="slider-icon slider-icon--large" aria-hidden="true">Aa</span>
+          </div>
+          <div class="slider-meta">
+            <span class="scale-value" id="lyricScaleValue">100%</span>
+            <span id="lyricScaleHint">Ajustá el tamaño de la letra generada a tu gusto.</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary-button">Invocar IA</button>
+          <button type="button" id="listenButton" class="listen-button">
+            <span aria-hidden="true">🎤</span>
+            Escuchar canción
+          </button>
+        </div>
+        <div class="assistant-status" id="assistantStatus" hidden></div>
+      </form>
+      <div class="card">
+        <div class="card-title">Historial de pedidos</div>
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </section>
+    <aside class="panel ai-panel">
+      <div class="card">
+        <div class="card-title">Respuesta de FachaBot</div>
+        <h2 style="margin-top: 0; margin-bottom: 0.8rem;">Letra generada</h2>
+        <div class="ai-output empty" id="lyricsOutput">Esperando tu consulta musical...</div>
+        <div class="streaming-links" id="streamingLinks" hidden></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Tips facheros</div>
+        <p style="margin: 0; color: var(--muted); line-height: 1.65;">
+          Probá combinar título y artista exactos para mejores resultados. Tu historial queda guardado en este dispositivo
+          para repetir búsquedas al instante.
+        </p>
+      </div>
+      <div class="card" style="display: none;" id="orientationCard">
+        <div class="card-title">Cambiar orientación</div>
+        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+          <button type="button" data-device="phone" class="device-switch">Modo Teléfono</button>
+          <button type="button" data-device="desktop" class="device-switch">Modo PC</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <template id="historyItemTemplate">
+    <div class="history-item">
+      <div>
+        <span class="title" style="font-weight: 600;"></span>
+        <span class="artist" style="color: var(--muted);"></span>
+      </div>
+      <span style="color: var(--accent-2); font-weight: 600;">Ver letra</span>
+    </div>
+  </template>
+
+  <script>
+    (function () {
+      const HISTORY_KEY = 'fachaLyricsHistory';
+      const MODE_KEY = 'fachaDeviceMode';
+      const AUDD_TOKEN_KEY = 'fachaAuddToken';
+      const STREAMING_PREFS_KEY = 'fachaStreamingPrefs';
+      const LYRICS_SCALE_KEY = 'fachaLyricsScale';
+      const body = document.body;
+      const form = document.getElementById('lyricsForm');
+      const appShell = document.getElementById('appShell');
+      const overlay = document.getElementById('deviceOverlay');
+      const historyList = document.getElementById('historyList');
+      const historyTemplate = document.getElementById('historyItemTemplate');
+      const output = document.getElementById('lyricsOutput');
+      const orientationCard = document.getElementById('orientationCard');
+      const listenButton = document.getElementById('listenButton');
+      const statusPanel = document.getElementById('assistantStatus');
+      const tokenInput = document.getElementById('auddToken');
+      const streamingLinks = document.getElementById('streamingLinks');
+      const openSpotifyInput = document.getElementById('openSpotify');
+      const openYoutubeInput = document.getElementById('openYoutube');
+      const lyricScaleInput = document.getElementById('lyricScale');
+      const lyricScaleValue = document.getElementById('lyricScaleValue');
+      const accentSquare = document.getElementById('accentSquare');
+      const fetchControllers = [];
+      const supportsAbort = typeof AbortController !== 'undefined';
+
+      const readLocal = (key, fallback) => {
+        try {
+          const stored = localStorage.getItem(key);
+          return stored ? JSON.parse(stored) : fallback;
+        } catch (error) {
+          console.warn('No se pudo leer localStorage', error);
+          return fallback;
+        }
+      };
+
+      const writeLocal = (key, value) => {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+          console.warn('No se pudo guardar en localStorage', error);
+        }
+      };
+
+      const removeLocal = (key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          console.warn('No se pudo borrar localStorage', error);
+        }
+      };
+
+      const toNumber = (value, fallback) => {
+        const numeric = typeof value === 'number' ? value : parseFloat(value);
+        return Number.isFinite(numeric) ? numeric : fallback;
+      };
+
+      const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+      let lastSongMeta = null;
+
+      const hideStreamingLinks = () => {
+        if (!streamingLinks) return;
+        streamingLinks.hidden = true;
+        streamingLinks.innerHTML = '';
+      };
+
+      const normalizeUrl = (value) =>
+        typeof value === 'string' && value.trim() ? value.trim() : null;
+
+      const buildStreamingUrls = (meta = {}) => {
+        const title = `${meta?.title || ''}`.trim();
+        const artist = `${meta?.artist || ''}`.trim();
+        if (!title || !artist) return {};
+        const query = `${title} ${artist}`.trim();
+        const encodedQuery = encodeURIComponent(query);
+        return {
+          spotify: normalizeUrl(meta?.spotifyUrl) || `https://open.spotify.com/search/${encodedQuery}`,
+          youtube: normalizeUrl(meta?.youtubeUrl) || `https://www.youtube.com/results?search_query=${encodedQuery}`,
+        };
+      };
+
+      const getStreamingPreferences = () => ({
+        spotify: !!openSpotifyInput?.checked,
+        youtube: !!openYoutubeInput?.checked,
+      });
+
+      const renderStreamingLinks = (meta) => {
+        if (!streamingLinks) return;
+        if (!meta || !meta.title || !meta.artist) {
+          hideStreamingLinks();
+          return;
+        }
+        const prefs = getStreamingPreferences();
+        const urls = buildStreamingUrls(meta);
+        const buttons = [];
+        if (prefs.spotify && urls.spotify) {
+          buttons.push({
+            platform: 'spotify',
+            label: 'Abrir en Spotify',
+            emoji: '🟢',
+            url: urls.spotify,
+          });
+        }
+        if (prefs.youtube && urls.youtube) {
+          buttons.push({
+            platform: 'youtube',
+            label: 'Abrir en YouTube',
+            emoji: '▶️',
+            url: urls.youtube,
+          });
+        }
+
+        if (!buttons.length) {
+          hideStreamingLinks();
+          return;
+        }
+
+        streamingLinks.innerHTML = '';
+        const prettyTitle = `${meta.title}`.trim();
+        const prettyArtist = `${meta.artist}`.trim();
+        const caption = document.createElement('div');
+        caption.className = 'streaming-caption';
+        caption.textContent = `Abrí "${prettyTitle}" de ${prettyArtist} en:`;
+        streamingLinks.appendChild(caption);
+        const buttonsWrap = document.createElement('div');
+        buttonsWrap.className = 'streaming-buttons';
+        buttons.forEach((button) => {
+          const link = document.createElement('a');
+          link.className = 'link-button';
+          link.dataset.platform = button.platform;
+          link.href = button.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = `${button.emoji} ${button.label}`;
+          buttonsWrap.appendChild(link);
+        });
+        streamingLinks.appendChild(buttonsWrap);
+        streamingLinks.hidden = false;
+      };
+
+      const loadStreamingPreferences = () => {
+        const stored = readLocal(STREAMING_PREFS_KEY, null);
+        return {
+          spotify: stored?.spotify !== false,
+          youtube: stored?.youtube !== false,
+        };
+      };
+
+      const persistStreamingPreferences = (prefs) => {
+        writeLocal(STREAMING_PREFS_KEY, prefs);
+      };
+
+      const lyricScaleConfig = {
+        min: toNumber(lyricScaleInput?.min, 0.9),
+        max: toNumber(lyricScaleInput?.max, 1.4),
+        default: toNumber(lyricScaleInput?.value, 1),
+      };
+
+      const setLyricScale = (scale) => {
+        const numeric = toNumber(scale, lyricScaleConfig.default);
+        const normalized = clamp(numeric, lyricScaleConfig.min, lyricScaleConfig.max);
+        document.documentElement.style.setProperty('--lyrics-scale', normalized.toString());
+        if (lyricScaleInput && lyricScaleInput.value !== normalized.toString()) {
+          lyricScaleInput.value = normalized;
+        }
+        if (lyricScaleValue) {
+          const displayValue = Math.round(normalized * 100);
+          lyricScaleValue.textContent = `${displayValue}%`;
+        }
+        return normalized;
+      };
+
+      const storedLyricScale = readLocal(LYRICS_SCALE_KEY, lyricScaleConfig.default);
+      const initialLyricScale = toNumber(storedLyricScale, lyricScaleConfig.default);
+      setLyricScale(initialLyricScale);
+
+      if (lyricScaleInput) {
+        lyricScaleInput.addEventListener('input', (event) => {
+          const normalized = setLyricScale(event.target.value);
+          writeLocal(LYRICS_SCALE_KEY, normalized);
+        });
+      }
+
+      const setStatus = (message = '', tone = 'info') => {
+        if (!statusPanel) return;
+        if (!message) {
+          statusPanel.textContent = '';
+          statusPanel.setAttribute('hidden', '');
+          return;
+        }
+        statusPanel.textContent = message;
+        statusPanel.dataset.tone = tone;
+        statusPanel.removeAttribute('hidden');
+      };
+
+      const createAggregateError = (errors, message) => {
+        if (typeof AggregateError === 'function') {
+          return new AggregateError(errors, message);
+        }
+        const aggregate = new Error(message);
+        aggregate.errors = errors;
+        return aggregate;
+      };
+
+      const firstFulfilled = (promises) =>
+        new Promise((resolve, reject) => {
+          const errors = [];
+          let pending = promises.length;
+          if (!pending) {
+            reject(createAggregateError(errors, 'No hay promesas que resolver'));
+            return;
+          }
+          promises.forEach((promise, index) => {
+            promise.then(resolve).catch((error) => {
+              errors[index] = error;
+              pending -= 1;
+              if (pending === 0) {
+                reject(createAggregateError(errors, 'Todas las estrategias fallaron'));
+              }
+            });
+          });
+        });
+
+      let cachedToken = readLocal(AUDD_TOKEN_KEY, '');
+      const streamingPreferences = loadStreamingPreferences();
+
+      if (openSpotifyInput) {
+        openSpotifyInput.checked = streamingPreferences.spotify;
+      }
+      if (openYoutubeInput) {
+        openYoutubeInput.checked = streamingPreferences.youtube;
+      }
+
+      const handleStreamingPreferenceChange = () => {
+        const prefs = getStreamingPreferences();
+        persistStreamingPreferences(prefs);
+        renderStreamingLinks(lastSongMeta);
+      };
+
+      openSpotifyInput?.addEventListener('change', handleStreamingPreferenceChange);
+      openYoutubeInput?.addEventListener('change', handleStreamingPreferenceChange);
+
+      hideStreamingLinks();
+
+      const setOrientation = (mode) => {
+        const isPhone = mode === 'phone';
+        appShell.classList.toggle('vertical', isPhone);
+        appShell.classList.toggle('horizontal', !isPhone);
+        body?.classList.toggle('pc-cursor', !isPhone);
+        overlay.classList.add('hidden');
+        orientationCard.style.display = 'block';
+        writeLocal(MODE_KEY, mode);
+      };
+
+      if (accentSquare || appShell) {
+        const pointerMedia = window.matchMedia('(pointer: fine)');
+        const baseRotation = { x: 12, y: -8 };
+        const squareTiltRange = 12;
+        const shellTiltRange = 5;
+
+        const setSquareRotation = (x, y) => {
+          if (!accentSquare) return;
+          accentSquare.style.setProperty('--square-rotate-x', `${x.toFixed(2)}deg`);
+          accentSquare.style.setProperty('--square-rotate-y', `${y.toFixed(2)}deg`);
+        };
+
+        const setShellTilt = (x, y) => {
+          if (!appShell) return;
+          appShell.style.setProperty('--shell-tilt-x', `${x.toFixed(2)}deg`);
+          appShell.style.setProperty('--shell-tilt-y', `${y.toFixed(2)}deg`);
+        };
+
+        const resetPointerDynamics = () => {
+          setSquareRotation(baseRotation.x, baseRotation.y);
+          setShellTilt(0, 0);
+        };
+
+        let pointerHandlersAttached = false;
+
+        const handlePointerMove = (event) => {
+          const { innerWidth, innerHeight } = window;
+          if (!innerWidth || !innerHeight) return;
+          const percentX = ((event.clientX || 0) / innerWidth - 0.5) * 2;
+          const percentY = ((event.clientY || 0) / innerHeight - 0.5) * 2;
+          const rotateX = clamp(
+            baseRotation.x - percentY * squareTiltRange,
+            baseRotation.x - squareTiltRange,
+            baseRotation.x + squareTiltRange,
+          );
+          const rotateY = clamp(
+            baseRotation.y + percentX * squareTiltRange,
+            baseRotation.y - squareTiltRange,
+            baseRotation.y + squareTiltRange,
+          );
+          const shellTiltX = clamp(-percentY * shellTiltRange, -shellTiltRange, shellTiltRange);
+          const shellTiltY = clamp(percentX * shellTiltRange, -shellTiltRange, shellTiltRange);
+          setSquareRotation(rotateX, rotateY);
+          setShellTilt(shellTiltX, shellTiltY);
+        };
+
+        const handlePointerLeave = () => {
+          resetPointerDynamics();
+        };
+
+        const attachPointerHandlers = () => {
+          if (pointerHandlersAttached) return;
+          window.addEventListener('pointermove', handlePointerMove);
+          document.body.addEventListener('pointerleave', handlePointerLeave);
+          window.addEventListener('blur', resetPointerDynamics);
+          window.addEventListener('resize', resetPointerDynamics);
+          pointerHandlersAttached = true;
+        };
+
+        const detachPointerHandlers = () => {
+          if (!pointerHandlersAttached) return;
+          window.removeEventListener('pointermove', handlePointerMove);
+          document.body.removeEventListener('pointerleave', handlePointerLeave);
+          window.removeEventListener('blur', resetPointerDynamics);
+          window.removeEventListener('resize', resetPointerDynamics);
+          pointerHandlersAttached = false;
+          resetPointerDynamics();
+        };
+
+        const handlePointerPreferenceChange = (event) => {
+          if (event.matches) {
+            attachPointerHandlers();
+          } else {
+            detachPointerHandlers();
+          }
+        };
+
+        if (pointerMedia.matches) {
+          attachPointerHandlers();
+        } else {
+          resetPointerDynamics();
+        }
+
+        if (typeof pointerMedia.addEventListener === 'function') {
+          pointerMedia.addEventListener('change', handlePointerPreferenceChange);
+        } else if (typeof pointerMedia.addListener === 'function') {
+          pointerMedia.addListener(handlePointerPreferenceChange);
+        }
+      }
+
+      const formatHistoryItem = ({ title, artist }) => {
+        const fragment = historyTemplate.content.cloneNode(true);
+        const item = fragment.querySelector('.history-item');
+        item.querySelector('.title').textContent = title;
+        item.querySelector('.artist').textContent = artist;
+        item.addEventListener('click', () => {
+          form.querySelector('#songTitle').value = title;
+          form.querySelector('#songArtist').value = artist;
+          fetchLyrics(title, artist, { fromHistory: true });
+        });
+        return fragment;
+      };
+
+      const renderHistory = () => {
+        const history = readLocal(HISTORY_KEY, []);
+        historyList.innerHTML = '';
+        if (!history.length) {
+          const empty = document.createElement('div');
+          empty.className = 'history-empty';
+          empty.textContent = 'Todavía no hiciste búsquedas. Probá con tu hit favorito.';
+          historyList.appendChild(empty);
+          return;
+        }
+
+        history.forEach((entry) => {
+          historyList.appendChild(formatHistoryItem(entry));
+        });
+      };
+
+      const persistHistory = (title, artist) => {
+        const history = readLocal(HISTORY_KEY, []);
+        const normalizedTitle = title.trim().toLowerCase();
+        const normalizedArtist = artist.trim().toLowerCase();
+        const exists = history.some((entry) => {
+          const entryTitle = entry.title.trim().toLowerCase();
+          const entryArtist = entry.artist.trim().toLowerCase();
+          return entryTitle === normalizedTitle && entryArtist === normalizedArtist;
+        });
+        if (!exists) {
+          history.unshift({ title, artist, timestamp: Date.now() });
+          if (history.length > 15) history.pop();
+          writeLocal(HISTORY_KEY, history);
+        }
+        renderHistory();
+      };
+
+      const abortPending = () => {
+        while (fetchControllers.length) {
+          const controller = fetchControllers.pop();
+          controller.abort();
+        }
+      };
+
+      const cleanLyrics = (lyrics) =>
+        lyrics
+          .replace(/<br\s*\/?\s*>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/\r\n/g, '\n')
+          .replace(/\u200b/g, '')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+
+      const strategiesFor = (title, artist) => {
+        const encodedTitle = encodeURIComponent(title);
+        const encodedArtist = encodeURIComponent(artist);
+        const encodedQuery = encodeURIComponent(`${artist} ${title}`);
+
+        return [
+          {
+            name: 'lyrics.ovh',
+            request: async (controller) => {
+              const response = await fetch(
+                `https://api.lyrics.ovh/v1/${encodedArtist}/${encodedTitle}`,
+                controller ? { signal: controller.signal } : undefined
+              );
+              if (!response.ok) throw new Error(`Estado ${response.status}`);
+              const data = await response.json();
+              return data?.lyrics || '';
+            },
+          },
+          {
+            name: 'lyrist',
+            request: async (controller) => {
+              const response = await fetch(
+                `https://lyrist.vercel.app/api/lyrics?artist=${encodedArtist}&title=${encodedTitle}`,
+                controller ? { signal: controller.signal } : undefined
+              );
+              if (!response.ok) throw new Error(`Estado ${response.status}`);
+              const data = await response.json();
+              return (
+                data?.lyrics ||
+                data?.lyrics_body ||
+                data?.result ||
+                (Array.isArray(data?.data) ? data.data[0]?.lyrics : '') ||
+                data?.message?.lyrics ||
+                ''
+              );
+            },
+          },
+          {
+            name: 'lrclib',
+            request: async (controller) => {
+              const response = await fetch(
+                `https://lrclib.net/api/search?artist_name=${encodedArtist}&track_name=${encodedTitle}&q=${encodedQuery}`,
+                controller ? { signal: controller.signal } : undefined
+              );
+              if (!response.ok) throw new Error(`Estado ${response.status}`);
+              const data = await response.json();
+              if (!Array.isArray(data)) return '';
+              const normalizedTitle = title.toLowerCase();
+              const normalizedArtist = artist.toLowerCase();
+              const match = data.find((item) => {
+                const itemTitle = `${item?.trackName || item?.track_name || ''}`.toLowerCase();
+                const itemArtist = `${item?.artistName || item?.artist_name || ''}`.toLowerCase();
+                return itemTitle.includes(normalizedTitle) && itemArtist.includes(normalizedArtist);
+              });
+              const lyricsCandidate =
+                match?.plainLyrics || match?.plain_lyrics || match?.syncedLyrics || match?.synced_lyrics || '';
+              if (lyricsCandidate) return lyricsCandidate;
+              const fallback = data[0];
+              return (
+                fallback?.plainLyrics ||
+                fallback?.plain_lyrics ||
+                fallback?.syncedLyrics ||
+                fallback?.synced_lyrics ||
+                ''
+              );
+            },
+          },
+        ];
+      };
+
+      const fetchLyrics = async (title, artist, options = {}) => {
+        let normalizedOptions = options;
+        if (typeof options === 'boolean') {
+          normalizedOptions = { fromHistory: options };
+        }
+        const { fromHistory = false, origin = 'manual', preface = '', streaming = null } =
+          typeof normalizedOptions === 'object' && normalizedOptions !== null
+            ? normalizedOptions
+            : { fromHistory: false, origin: 'manual', preface: '' };
+
+        const streamingDetails =
+          typeof streaming === 'object' && streaming !== null ? streaming : {};
+        const resolvedTitle = `${streamingDetails.title || title}`.trim() || title;
+        const resolvedArtist = `${streamingDetails.artist || artist}`.trim() || artist;
+        const resolvedSpotifyUrl =
+          normalizeUrl(streamingDetails.spotifyUrl) || normalizeUrl(streamingDetails.spotify);
+        const resolvedYoutubeUrl =
+          normalizeUrl(streamingDetails.youtubeUrl) || normalizeUrl(streamingDetails.youtube);
+        lastSongMeta = {
+          title: resolvedTitle,
+          artist: resolvedArtist,
+          spotifyUrl: resolvedSpotifyUrl,
+          youtubeUrl: resolvedYoutubeUrl,
+        };
+        hideStreamingLinks();
+
+        abortPending();
+        output.classList.remove('empty');
+        output.innerHTML = '🔮 FachaBot está buscando la letra...';
+
+        const strategies = strategiesFor(title, artist);
+        const messageParts = [];
+        if (preface) {
+          messageParts.push(preface);
+        }
+        if (strategies.length) {
+          const baseMessage =
+            origin === 'listen'
+              ? 'Canción detectada. Buscando la letra con todos mis oráculos.'
+              : 'Consultando mis fuentes a toda máquina.';
+          messageParts.push(`${baseMessage} (${strategies.length} en paralelo)`);
+        }
+        if (messageParts.length) {
+          setStatus(messageParts.join(' '), 'info');
+        } else {
+          setStatus('Consultando mis fuentes a toda máquina.', 'info');
+        }
+
+        const failureLogs = [];
+        const attempts = strategies.map((strategy) => {
+          const controller = supportsAbort ? new AbortController() : null;
+          if (controller) {
+            fetchControllers.push(controller);
+          }
+          const tidy = () => {
+            if (!controller) return;
+            const index = fetchControllers.indexOf(controller);
+            if (index !== -1) {
+              fetchControllers.splice(index, 1);
+            }
+          };
+          return strategy
+            .request(controller)
+            .then((rawLyrics) => {
+              tidy();
+              const lyrics = rawLyrics ? cleanLyrics(rawLyrics) : '';
+              if (!lyrics) {
+                throw new Error('Letra vacía');
+              }
+              return { lyrics: lyrics.trim(), strategy: strategy.name };
+            })
+            .catch((error) => {
+              tidy();
+              failureLogs.push({ strategy: strategy.name, error });
+              throw error;
+            });
+        });
+
+        if (!attempts.length) {
+          setStatus('No tengo fuentes disponibles para esta búsqueda.', 'error');
+          output.classList.add('empty');
+          output.textContent = 'No hay fuentes configuradas para obtener letras en este momento.';
+          lastSongMeta = null;
+          return;
+        }
+
+        try {
+          const resolver =
+            typeof Promise.any === 'function' ? Promise.any(attempts) : firstFulfilled(attempts);
+          const result = await resolver;
+          output.textContent = result.lyrics;
+          if (!fromHistory) {
+            persistHistory(title, artist);
+          }
+          setStatus(`Letra encontrada gracias a ${result.strategy}.`, 'success');
+          renderStreamingLinks(lastSongMeta);
+          const controllersSnapshot = fetchControllers.slice();
+          controllersSnapshot.forEach((controller) => {
+            try {
+              controller.abort();
+            } catch (abortError) {
+              console.info('No se pudo abortar una petición resuelta', abortError);
+            }
+          });
+          fetchControllers.length = 0;
+        } catch (error) {
+          const lastFailure = failureLogs.length ? failureLogs[failureLogs.length - 1] : null;
+          const detailMessage =
+            lastFailure?.error?.message ||
+            (typeof lastFailure?.error === 'string' ? lastFailure.error : '');
+          setStatus('No pude encontrar esa letra en las fuentes disponibles.', 'error');
+          output.classList.add('empty');
+          output.innerHTML = `⚠️ FachaBot no pudo encontrar esa letra.<br /><small style="color: var(--muted);">Revisá el título o el artista e intentá de nuevo.${
+            detailMessage ? ` Detalle: ${detailMessage}` : ''
+          }</small>`;
+          hideStreamingLinks();
+          lastSongMeta = null;
+          console.info('Estrategias agotadas', failureLogs, error);
+        }
+      };
+
+      const getAuddToken = () => {
+        const typed = tokenInput?.value?.trim();
+        return typed || cachedToken || '';
+      };
+
+      if (tokenInput) {
+        if (cachedToken) {
+          tokenInput.value = cachedToken;
+        }
+        tokenInput.addEventListener('input', () => {
+          tokenInput.classList.remove('input-error');
+        });
+        tokenInput.addEventListener('change', () => {
+          cachedToken = tokenInput.value.trim();
+          if (cachedToken) {
+            writeLocal(AUDD_TOKEN_KEY, cachedToken);
+          } else {
+            removeLocal(AUDD_TOKEN_KEY);
+          }
+        });
+      }
+
+      let mediaRecorder = null;
+      let audioChunks = [];
+      let listening = false;
+      let recognitionTimeoutId = null;
+      let analyzeAfterStop = true;
+      let activeStream = null;
+      let audioConversionContext = null;
+
+      const highlightTokenRequirement = (message) => {
+        if (message) {
+          setStatus(message, 'error');
+        }
+        if (tokenInput) {
+          tokenInput.classList.add('input-error');
+          tokenInput.focus({ preventScroll: true });
+        }
+      };
+
+      const ensureTokenForListening = () => {
+        const token = getAuddToken();
+        if (!token) {
+          highlightTokenRequirement(
+            'Necesitás pegar tu token de AudD antes de usar el botón de escucha.'
+          );
+          return null;
+        }
+        return token;
+      };
+
+      const ensureAudioContext = () => {
+        if (audioConversionContext) return audioConversionContext;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          return null;
+        }
+        try {
+          audioConversionContext = new AudioContextClass();
+          return audioConversionContext;
+        } catch (error) {
+          console.warn('No se pudo crear AudioContext para convertir la grabación', error);
+          audioConversionContext = null;
+          return null;
+        }
+      };
+
+      const convertBlobToWav = async (blob) => {
+        if (!blob || blob.type.includes('wav')) {
+          return blob;
+        }
+        const context = ensureAudioContext();
+        if (!context) {
+          return blob;
+        }
+        try {
+          if (context.state === 'suspended') {
+            await context.resume().catch(() => {});
+          }
+          const arrayBuffer = await blob.arrayBuffer();
+          const audioBuffer = await context.decodeAudioData(arrayBuffer);
+          const { numberOfChannels, length, sampleRate } = audioBuffer;
+          const bytesPerSample = 2;
+          const blockAlign = numberOfChannels * bytesPerSample;
+          const byteRate = sampleRate * blockAlign;
+          const dataLength = length * blockAlign;
+          const buffer = new ArrayBuffer(44 + dataLength);
+          const view = new DataView(buffer);
+          let offset = 0;
+
+          const writeString = (str) => {
+            for (let i = 0; i < str.length; i += 1) {
+              view.setUint8(offset, str.charCodeAt(i));
+              offset += 1;
+            }
+          };
+
+          writeString('RIFF');
+          view.setUint32(offset, 36 + dataLength, true);
+          offset += 4;
+          writeString('WAVE');
+          writeString('fmt ');
+          view.setUint32(offset, 16, true);
+          offset += 4;
+          view.setUint16(offset, 1, true);
+          offset += 2;
+          view.setUint16(offset, numberOfChannels, true);
+          offset += 2;
+          view.setUint32(offset, sampleRate, true);
+          offset += 4;
+          view.setUint32(offset, byteRate, true);
+          offset += 4;
+          view.setUint16(offset, blockAlign, true);
+          offset += 2;
+          view.setUint16(offset, bytesPerSample * 8, true);
+          offset += 2;
+          writeString('data');
+          view.setUint32(offset, dataLength, true);
+          offset += 4;
+
+          const channelData = [];
+          for (let channel = 0; channel < numberOfChannels; channel += 1) {
+            channelData.push(audioBuffer.getChannelData(channel));
+          }
+
+          for (let sampleIndex = 0; sampleIndex < length; sampleIndex += 1) {
+            for (let channel = 0; channel < numberOfChannels; channel += 1) {
+              const sample = channelData[channel][sampleIndex];
+              const clamped = Math.max(-1, Math.min(1, sample));
+              view.setInt16(
+                offset,
+                clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff,
+                true
+              );
+              offset += 2;
+            }
+          }
+
+          return new Blob([buffer], { type: 'audio/wav' });
+        } catch (error) {
+          console.warn('No se pudo convertir el audio a WAV', error);
+          return blob;
+        }
+      };
+
+      const stopActiveStream = () => {
+        if (activeStream) {
+          activeStream.getTracks().forEach((track) => track.stop());
+          activeStream = null;
+        }
+      };
+
+      const setListenButtonContent = (icon, text) => {
+        if (!listenButton) return;
+        listenButton.innerHTML = `<span aria-hidden="true">${icon}</span><span>${text}</span>`;
+      };
+
+      const resetListenButton = () => {
+        if (!listenButton) return;
+        listenButton.classList.remove('recording');
+        listenButton.disabled = false;
+        setListenButtonContent('🎤', 'Escuchar canción');
+      };
+
+      const stopListening = (options = {}) => {
+        if (!mediaRecorder) return;
+        const { analyze = true } = options;
+        analyzeAfterStop = analyze;
+        clearTimeout(recognitionTimeoutId);
+        recognitionTimeoutId = null;
+        listening = false;
+        if (mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        } else {
+          if (!analyze) {
+            audioChunks = [];
+            setStatus('Grabación cancelada.', 'info');
+          }
+          stopActiveStream();
+        }
+      };
+
+      const pickAudDBestResult = (payload) => {
+        if (!payload) return null;
+        if (payload?.result?.title && payload?.result?.artist) {
+          return payload.result;
+        }
+        const list =
+          (Array.isArray(payload?.result?.list) && payload.result.list) ||
+          (Array.isArray(payload?.result) ? payload.result : []);
+        if (!list || !list.length) return null;
+        return list.find((item) => item?.title && item?.artist) || list[0] || null;
+      };
+
+      const blobToBase64 = (blob) =>
+        new Promise((resolve, reject) => {
+          try {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = reader.result;
+              if (typeof result === 'string' && result.includes(',')) {
+                resolve(result.split(',')[1]);
+              } else if (typeof result === 'string') {
+                resolve(result);
+              } else {
+                resolve('');
+              }
+            };
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          } catch (error) {
+            reject(error);
+          }
+        });
+
+      const identifySong = async (audioBlob) => {
+        const token = ensureTokenForListening();
+        if (!token) {
+          return;
+        }
+        if (tokenInput) {
+          tokenInput.classList.remove('input-error');
+        }
+        let uploadBlob = audioBlob;
+        try {
+          if (listenButton) {
+            listenButton.classList.add('processing');
+            listenButton.setAttribute('aria-busy', 'true');
+            listenButton.disabled = true;
+            setListenButtonContent('🤖', 'Reconociendo...');
+          }
+          setStatus('Analizando audio para reconocer la canción...', 'info');
+          uploadBlob = await convertBlobToWav(audioBlob);
+          const inferredType = uploadBlob?.type || audioBlob?.type || 'audio/wav';
+          let extension = 'wav';
+          if (typeof inferredType === 'string' && inferredType.includes('/')) {
+            extension = inferredType.split('/')[1] || 'wav';
+            if (extension.includes(';')) {
+              extension = extension.split(';')[0];
+            }
+          }
+          if (!extension) {
+            extension = 'wav';
+          }
+          let base64Audio = '';
+          try {
+            base64Audio = await blobToBase64(uploadBlob);
+          } catch (base64Error) {
+            console.info('No se pudo generar base64 para AudD, sigo con archivo directo', base64Error);
+          }
+          const formData = new FormData();
+          formData.append('api_token', token);
+          formData.append('return', 'apple_music,spotify,youtube');
+          formData.append('method', 'recognize');
+          formData.append('file', uploadBlob, `capture.${extension}`);
+          if (base64Audio) {
+            formData.append('audio', base64Audio);
+          }
+          const response = await fetch('https://api.audd.io/', {
+            method: 'POST',
+            body: formData,
+          });
+          const payload = await response.json();
+          const resultData = pickAudDBestResult(payload);
+          if (payload?.status === 'success' && resultData?.title) {
+            const detectedTitle = resultData.title;
+            const detectedArtist = resultData.artist;
+            const spotifyUrlCandidate =
+              resultData?.spotify?.external_urls?.spotify ||
+              resultData?.spotify?.url ||
+              (resultData?.spotify?.id
+                ? `https://open.spotify.com/track/${resultData.spotify.id}`
+                : null);
+            const spotifySongLinkFallback = normalizeUrl(
+              typeof resultData?.song_link === 'string' && resultData.song_link.includes('open.spotify.com')
+                ? resultData.song_link
+                : (typeof payload?.result?.song_link === 'string' &&
+                    payload.result.song_link.includes('open.spotify.com')
+                    ? payload.result.song_link
+                    : null)
+            );
+            const spotifyUrl = normalizeUrl(spotifyUrlCandidate) || spotifySongLinkFallback;
+            const youtubeCandidate = resultData?.youtube || payload?.result?.youtube || {};
+            const youtubeUrlCandidate =
+              youtubeCandidate?.url ||
+              (youtubeCandidate?.vid ? `https://www.youtube.com/watch?v=${youtubeCandidate.vid}` : null) ||
+              (typeof resultData?.video_link === 'string' && resultData.video_link.includes('youtube.com')
+                ? resultData.video_link
+                : null);
+            const youtubeUrl = normalizeUrl(youtubeUrlCandidate);
+            form.querySelector('#songTitle').value = detectedTitle;
+            form.querySelector('#songArtist').value = detectedArtist;
+            const detectionMessage = `Detecté "${detectedTitle}" de ${detectedArtist}.`;
+            fetchLyrics(detectedTitle, detectedArtist, {
+              origin: 'listen',
+              preface: detectionMessage,
+              streaming: {
+                title: resultData?.title || detectedTitle,
+                artist: resultData?.artist || detectedArtist,
+                spotifyUrl,
+                youtubeUrl,
+              },
+            });
+          } else {
+            const message =
+              payload?.error?.message ||
+              payload?.status_message ||
+              payload?.result ||
+              'No pude reconocer esa canción.';
+            setStatus(`${message} Probá acercar más el micrófono.`, 'error');
+            if (typeof message === 'string' && message.toLowerCase().includes('token')) {
+              highlightTokenRequirement('Tu token de AudD parece inválido. Revisalo en dashboard.audd.io.');
+            }
+            hideStreamingLinks();
+            lastSongMeta = null;
+          }
+        } catch (error) {
+          setStatus(`Se cayó el reconocimiento (${error.message}).`, 'error');
+          hideStreamingLinks();
+          lastSongMeta = null;
+        } finally {
+          if (listenButton) {
+            listenButton.disabled = false;
+            listenButton.classList.remove('processing');
+            listenButton.removeAttribute('aria-busy');
+            if (!listenButton.classList.contains('recording')) {
+              setListenButtonContent('🎤', 'Escuchar otra vez');
+            }
+          }
+        }
+      };
+
+      const startListening = async () => {
+        if (!listenButton || listening) return;
+        if (!ensureTokenForListening()) {
+          listenButton?.classList.remove('recording');
+          listenButton?.removeAttribute('aria-busy');
+          return;
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setStatus('Tu navegador no permite acceder al micrófono.', 'error');
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          activeStream = stream;
+          audioChunks = [];
+          const supportsWebm =
+            typeof MediaRecorder !== 'undefined' &&
+            typeof MediaRecorder.isTypeSupported === 'function' &&
+            MediaRecorder.isTypeSupported('audio/webm;codecs=opus');
+          mediaRecorder = supportsWebm
+            ? new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+            : new MediaRecorder(stream);
+          analyzeAfterStop = true;
+          mediaRecorder.addEventListener('dataavailable', (event) => {
+            if (event.data && event.data.size) {
+              audioChunks.push(event.data);
+            }
+          });
+          mediaRecorder.addEventListener('stop', async () => {
+            stopActiveStream();
+            const capturedChunks = audioChunks.slice();
+            audioChunks = [];
+            mediaRecorder = null;
+            listening = false;
+            listenButton.classList.remove('recording');
+            setListenButtonContent('🎤', 'Escuchar otra vez');
+            if (!analyzeAfterStop) {
+              setStatus('Grabación cancelada.', 'info');
+              return;
+            }
+            const blobType = capturedChunks[0]?.type || 'audio/webm';
+            const audioBlob = new Blob(capturedChunks, { type: blobType });
+            if (!audioBlob.size) {
+              setStatus('No se capturó audio. Probá subir el volumen.', 'error');
+              return;
+            }
+            await identifySong(audioBlob);
+          });
+          mediaRecorder.start();
+          listening = true;
+          listenButton.classList.add('recording');
+          setListenButtonContent('⏹️', 'Detener escucha');
+          setStatus('🎧 Escuchando... acercá el micrófono a la música.', 'info');
+          recognitionTimeoutId = window.setTimeout(() => {
+            if (listening) {
+              setStatus('Procesando la muestra capturada...', 'info');
+              stopListening({ analyze: true });
+            }
+          }, 6000);
+        } catch (error) {
+          setStatus(`No pude usar tu micrófono: ${error.message}`, 'error');
+          stopListening({ analyze: false });
+          stopActiveStream();
+          resetListenButton();
+        }
+      };
+
+      if (listenButton) {
+        if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          listenButton.disabled = true;
+          listenButton.title = 'Tu navegador no soporta la captura de audio.';
+        } else {
+          setListenButtonContent('🎤', 'Escuchar canción');
+          listenButton.addEventListener('click', () => {
+            if (listening) {
+              setStatus('Procesando la muestra capturada...', 'info');
+              stopListening({ analyze: true });
+            } else {
+              startListening();
+            }
+          });
+        }
+      }
+
+      window.addEventListener('beforeunload', () => {
+        if (audioConversionContext && typeof audioConversionContext.close === 'function') {
+          audioConversionContext.close();
+        }
+      });
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const title = form.querySelector('#songTitle').value.trim();
+        const artist = form.querySelector('#songArtist').value.trim();
+
+        if (!title || !artist) {
+          output.classList.add('empty');
+          output.textContent = 'Necesito título y artista para tirar magia.';
+          hideStreamingLinks();
+          lastSongMeta = null;
+          return;
+        }
+
+        fetchLyrics(title, artist);
+      });
+
+      overlay.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-device]');
+        if (!button) return;
+        setOrientation(button.dataset.device);
+      });
+
+      orientationCard.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-device]');
+        if (!button) return;
+        setOrientation(button.dataset.device);
+      });
+
+      window.addEventListener('load', () => {
+        setStatus('Listo para buscar tu próximo hit.', 'info');
+        renderHistory();
+        const storedMode = readLocal(MODE_KEY, null);
+        if (storedMode) {
+          setOrientation(storedMode);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
