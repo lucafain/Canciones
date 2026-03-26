@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LyricAI - Letras con estilo</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="background-glow"></div>
+
+    <main class="app" id="app">
+      <header class="hero">
+        <p class="badge">IA integrada</p>
+        <h1>LyricAI</h1>
+        <p class="subtitle">
+          Escribí el <strong>título</strong> y <strong>artista</strong> para obtener la letra.
+        </p>
+      </header>
+
+      <section class="panel search-panel">
+        <form id="lyricsForm" class="lyrics-form" autocomplete="off">
+          <label>
+            Título
+            <input id="titleInput" name="title" type="text" placeholder="Ej: Bohemian Rhapsody" required />
+          </label>
+          <label>
+            Artista
+            <input id="artistInput" name="artist" type="text" placeholder="Ej: Queen" required />
+          </label>
+          <button type="submit" class="btn-main">Buscar letra</button>
+        </form>
+
+        <div class="ia-box" id="iaBox" aria-live="polite">
+          <h2>Asistente IA</h2>
+          <p id="iaMessage">Hola 👋, te ayudo a buscar letras. Probá con una canción.</p>
+        </div>
+      </section>
+
+      <section class="panel result-panel">
+        <div class="result-head">
+          <h2 id="songHeader">Sin búsqueda todavía</h2>
+          <span id="deviceModeTag" class="mode-tag">Modo: automático</span>
+        </div>
+        <pre id="lyricsOutput" class="lyrics-output">La letra aparecerá aquí.</pre>
+      </section>
+
+      <section class="panel history-panel">
+        <div class="history-head">
+          <h2>Historial de búsquedas</h2>
+          <button id="clearHistory" class="btn-secondary" type="button">Limpiar</button>
+        </div>
+        <ul id="historyList" class="history-list"></ul>
+      </section>
+    </main>
+
+    <dialog id="deviceDialog" class="device-dialog">
+      <form method="dialog" class="device-form">
+        <h2>Elegí tu dispositivo</h2>
+        <p>¿Estás usando teléfono o PC?</p>
+        <div class="device-actions">
+          <button value="phone" class="btn-main" type="submit">Teléfono</button>
+          <button value="pc" class="btn-secondary" type="submit">PC</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="script.js"></script>
+  </body>
+</html>

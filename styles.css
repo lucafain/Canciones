@@ -1,0 +1,240 @@
+:root {
+  --bg: #070b1a;
+  --bg-soft: #101735;
+  --text: #e8edff;
+  --muted: #9ea9d8;
+  --accent: #7b5cff;
+  --accent-2: #28d5f5;
+  --ok: #3cf7b7;
+  --danger: #ff637d;
+  --border: rgba(255, 255, 255, 0.18);
+  --shadow: 0 10px 40px rgba(2, 8, 35, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 20% 10%, #1b2a67 0%, transparent 35%),
+    radial-gradient(circle at 75% 20%, #41257d 0%, transparent 30%),
+    var(--bg);
+  padding: 24px;
+}
+
+.background-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 70%, rgba(40, 213, 245, 0.2), transparent 45%);
+  filter: blur(30px);
+}
+
+.app {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+  z-index: 2;
+}
+
+.hero {
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--accent-2);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+h1 {
+  margin: 12px 0 6px;
+  font-size: clamp(2rem, 5vw, 3.8rem);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: linear-gradient(130deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+  box-shadow: var(--shadow);
+  border-radius: 20px;
+  backdrop-filter: blur(14px);
+  padding: 20px;
+}
+
+.search-panel {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+}
+
+.lyrics-form {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  font-size: 0.95rem;
+  display: grid;
+  gap: 6px;
+  color: #dce2ff;
+}
+
+input {
+  background: rgba(9, 14, 33, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 11px 13px;
+  outline: none;
+}
+
+input:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px rgba(40, 213, 245, 0.25);
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-main {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ia-box {
+  background: rgba(6, 10, 25, 0.66);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.ia-box h2,
+.result-head h2,
+.history-head h2 {
+  margin: 0 0 10px;
+}
+
+.result-head,
+.history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.mode-tag {
+  font-size: 0.85rem;
+  color: var(--ok);
+}
+
+.lyrics-output {
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 460px;
+  overflow: auto;
+  line-height: 1.45;
+  color: #e9f0ff;
+  background: rgba(6, 10, 25, 0.68);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.history-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  background: rgba(8, 13, 33, 0.7);
+}
+
+.history-item button {
+  padding: 8px 10px;
+  font-size: 0.83rem;
+}
+
+.device-dialog {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0;
+  background: #0d1532;
+  color: var(--text);
+}
+
+.device-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.device-form {
+  padding: 20px;
+}
+
+.device-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.app.phone {
+  max-width: 640px;
+}
+
+.app.phone .search-panel {
+  grid-template-columns: 1fr;
+}
+
+.app.pc {
+  max-width: 1280px;
+}
+
+.app.pc .result-panel,
+.app.pc .history-panel {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .search-panel {
+    grid-template-columns: 1fr;
+  }
+
+  body {
+    padding: 16px;
+  }
+}
